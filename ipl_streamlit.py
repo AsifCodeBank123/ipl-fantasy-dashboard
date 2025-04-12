@@ -72,45 +72,51 @@ upcoming_matches_df = match_df[match_df["DateTime"] > current_time]
 
 # --- Get next match 1 hour before ---
 # Check if the match is 1 hour away or less
-upcoming_matches_df["TimeDiff"] = upcoming_matches_df["DateTime"] - current_time
-upcoming_matches_df["TimeDiffInHours"] = upcoming_matches_df["TimeDiff"].dt.total_seconds() / 3600
+upcoming_matches_df.loc[:, "TimeDiff"] = upcoming_matches_df["DateTime"] - current_time
+upcoming_matches_df.loc[:, "TimeDiffInHours"] = upcoming_matches_df["TimeDiff"].dt.total_seconds() / 3600
 
 # Select match that is less than or equal to 1 hour away
 upcoming_matches_df = upcoming_matches_df[upcoming_matches_df["TimeDiffInHours"] <= 4]
 
-# If no upcoming matches are within 1 hour, show the next match
-if upcoming_matches_df.empty:
-    # No matches in the next hour, select the first upcoming match
-    next_match = upcoming_matches_df.iloc[0]["Match"] if not upcoming_matches_df.empty else "No upcoming match"
+# If no upcoming matches are within 4 hour, show the next match
+if not upcoming_matches_df.empty:
+    next_match = upcoming_matches_df.iloc[0]["Match"]
 else:
     next_match = upcoming_matches_df.iloc[0]["Match"]
 
-# --- Dropdown of upcoming matches ---
-upcoming_matches = upcoming_matches_df["Match"].tolist()
-
-# Add next match to the dropdown (if there are any upcoming matches)
-if upcoming_matches:
-    match_input = st.selectbox("Select Upcoming Match", options=upcoming_matches, index=0)
-else:
-    match_input = st.selectbox("Select Upcoming Match", options=["No upcoming match"])
-
-# Display selected match
-st.write(f"🎮 Selected Match: {match_input}")
 
 # --- Inputs ---
 n_matches_played = 5
 total_matches = 10
-teams_playing = match_input.split(" vs ")
 
-# --- Filter players from the selected teams ---
-playing_players = points_df[points_df["Team"].isin(teams_playing)]["Player Name"].unique().tolist()
-playing_players.sort()
+# --- Dropdown of upcoming matches ---
+upcoming_matches = upcoming_matches_df["Match"].tolist()
 
-non_playing_players = st.multiselect(
-    f"Select Non-Playing Players from {teams_playing[0]}/{teams_playing[1]}:",
-    options=playing_players,
-    default=[]
-)
+# Add next match to the dropdown
+match_input = st.selectbox("Select Upcoming Match", options=upcoming_matches)
+
+# Ensure match_input is valid before using it
+if match_input:
+    # Split the selected match into two teams
+    teams_playing = match_input.split(" vs ")
+
+    # Validate that teams_playing has exactly two elements
+    if len(teams_playing) == 2:
+        # Filter players based on the selected teams
+        playing_players = points_df[points_df["Team"].isin(teams_playing)]["Player Name"].unique().tolist()
+        playing_players.sort()
+
+        # Dynamically update the multiselect for non-playing players from selected teams
+        non_playing_players = st.multiselect(
+            f"Select Non-Playing Players from {teams_playing[0]}/{teams_playing[1]}:",
+            options=playing_players,
+            default=[]
+        )
+    else:
+        st.error("Error: Match format is incorrect or incomplete.")
+else:
+    st.error("No match selected. Please select a match.")
+
 
 # --- Calculate Update Differences ---
 df_diff = df.copy()
