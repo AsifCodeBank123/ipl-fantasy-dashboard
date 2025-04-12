@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 from datetime import datetime, timedelta
+import pytz
 import random
 import numpy as np
 from sklearn.linear_model import LinearRegression
@@ -58,31 +59,34 @@ match_df = pd.DataFrame(match_data, columns=["Date", "Time", "Match"])
 df = pd.read_csv("owners_performance_updates.csv")
 points_df = pd.read_csv("points.csv")
 
+# Define IST timezone
+ist = pytz.timezone("Asia/Kolkata")
 # --- Get current time ---
-current_time = datetime.now()
+current_time = datetime.now(ist)
 
-# --- Find next match based on current time ---
-# Convert match dates and times to datetime format
+# --- Convert match dates and times to datetime format in IST ---
 match_df["DateTime"] = pd.to_datetime(
     match_df["Date"] + " " + match_df["Time"], format="%d-%b-%y %I:%M %p"
 )
+match_df["DateTime"] = match_df["DateTime"].dt.tz_localize("Asia/Kolkata")
 
-# Filter matches that are after the current time
-upcoming_matches_df = match_df[match_df["DateTime"] > current_time]
+# --- Filter matches after the current time ---
+upcoming_matches_df = match_df[match_df["DateTime"] > current_time].copy()
 
-# --- Get next match 1 hour before ---
-# Check if the match is 1 hour away or less
-upcoming_matches_df.loc[:, "TimeDiff"] = upcoming_matches_df["DateTime"] - current_time
-upcoming_matches_df.loc[:, "TimeDiffInHours"] = upcoming_matches_df["TimeDiff"].dt.total_seconds() / 3600
+# --- Calculate time difference ---
+upcoming_matches_df["TimeDiff"] = upcoming_matches_df["DateTime"] - current_time
+upcoming_matches_df["TimeDiffInHours"] = upcoming_matches_df["TimeDiff"].dt.total_seconds() / 3600
 
-# Select match that is less than or equal to 1 hour away
-upcoming_matches_df = upcoming_matches_df[upcoming_matches_df["TimeDiffInHours"] <= 4]
+# --- Filter for matches within the next 4 hours ---
+matches_within_4_hours = upcoming_matches_df[upcoming_matches_df["TimeDiffInHours"] <= 4]
 
-# If no upcoming matches are within 4 hour, show the next match
-if not upcoming_matches_df.empty:
+# --- Select next match ---
+if not matches_within_4_hours.empty:
+    next_match = matches_within_4_hours.iloc[0]["Match"]
+elif not upcoming_matches_df.empty:
     next_match = upcoming_matches_df.iloc[0]["Match"]
 else:
-    next_match = upcoming_matches_df.iloc[0]["Match"]
+    next_match = "No upcoming match"
 
 
 # --- Inputs ---
