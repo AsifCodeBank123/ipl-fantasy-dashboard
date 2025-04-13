@@ -11,11 +11,36 @@ import matplotlib.pyplot as plt
 st.set_page_config(layout="wide", page_title="HPL Fantasy Dashboard")
 st.title("🏏 HPL Fantasy League Performance Dashboard")
 
+# --- Captain and Vice-Captain selections for each owner ---
+captain_vc_dict = {
+    "Mahesh": ("Jos Buttler", "N. Tilak Varma"),
+    "Asif": ("Pat Cummins", "Venkatesh Iyer"),
+    "Pritesh": ("Abhishek Sharma", "Yashasvi Jaiswal"),
+    "Pritam": ("Suryakumar Yadav", "Virat Kohli"),
+    "Lalit": ("Shreyas Iyer", "Shubman Gill"),
+    "Umesh": ("Travis Head", "Rohit Sharma"),
+    "Sanskar": ("Hardik Pandya", "Axar Patel"),
+    "Johnson": ("Sunil Naraine", "Sanju Samson"),
+    "Somansh": ("Rashid Khan", "Phil Salt"),
+    "Wilfred": ("Rachin Ravindra", "KL Rahul")
+}
+
+
 # --- Load Match Data ---
 # Match data (schedule) for the IPL season.
 match_data = [
     ["12-Apr-25", "3:30 PM", "LSG vs GT"],
     ["12-Apr-25", "7:30 PM", "SRH vs PK"],
+    ["13-Apr-25", "3:30 PM", "RR vs RCB"],
+    ["13-Apr-25", "7:30 PM", "DC vs MI"],
+    ["14-Apr-25", "7:30 PM", "LSG vs CSK"],
+    ["15-Apr-25", "7:30 PM", "KKR vs PK"],
+    ["16-Apr-25", "7:30 PM", "DC vs RR"],
+    ["17-Apr-25", "7:30 PM", "MI vs SRH"],
+    ["18-Apr-25", "7:30 PM", "RCB vs PK"],
+    ["19-Apr-25", "3:30 PM", "GT vs DC"],
+    ["19-Apr-25", "7:30 PM", "LSG vs RR"],
+    ["20-Apr-25", "3:30 PM", "PK vs RCB"],
     ["20-Apr-25", "7:30 PM", "MI vs CSK"],
     ["21-Apr-25", "7:30 PM", "KKR vs GT"],
     ["22-Apr-25", "7:30 PM", "LSG vs DC"],
@@ -59,6 +84,38 @@ match_df = pd.DataFrame(match_data, columns=["Date", "Time", "Match"])
 df = pd.read_csv("owners_performance_updates.csv")
 points_df = pd.read_csv("points.csv")
 
+# Ensure the "CVC Bonus Points" column exists and is of float type
+if "CVC Bonus Points" not in points_df.columns:
+    points_df["CVC Bonus Points"] = 0.0
+else:
+    points_df["CVC Bonus Points"] = points_df["CVC Bonus Points"].astype(float)
+
+# Apply captain and vice-captain multipliers
+for owner, (captain, vice_captain) in captain_vc_dict.items():
+    # Apply captain bonus
+    points_df.loc[
+        (points_df["Owner"] == owner) & (points_df["Player Name"] == captain),
+        "CVC Bonus Points"
+    ] = (
+        points_df.loc[
+            (points_df["Owner"] == owner) & (points_df["Player Name"] == captain),
+            "Total Points"
+        ] #* 2.0
+    )
+
+    # Apply vice-captain bonus
+    points_df.loc[
+        (points_df["Owner"] == owner) & (points_df["Player Name"] == vice_captain),
+        "CVC Bonus Points"
+    ] = (
+        points_df.loc[
+            (points_df["Owner"] == owner) & (points_df["Player Name"] == vice_captain),
+            "Total Points"
+        ] #* 1.5
+    )
+
+
+
 # Define IST timezone
 ist = pytz.timezone("Asia/Kolkata")
 # --- Get current time ---
@@ -97,7 +154,7 @@ total_matches = 10
 upcoming_matches = upcoming_matches_df["Match"].tolist()
 
 # Add next match to the dropdown
-match_input = st.selectbox("Select Upcoming Match", options=upcoming_matches)
+match_input = st.selectbox("Current/Next Match", options=upcoming_matches)
 
 # Ensure match_input is valid before using it
 if match_input:
@@ -139,6 +196,59 @@ impact_df = points_df[(points_df["Team"].isin(teams_playing)) & (~points_df["Pla
 top_players = impact_df.sort_values(by="Total Points", ascending=False).head(10)
 st.dataframe(top_players[["Player Name", "Team", "Owner", "Total Points"]], use_container_width=True)
 
+# Group by owner
+owner_cvc_summary = points_df.groupby("Owner").agg(
+    Team_Total_Points=("Total Points", "sum"),
+    CVC_Bonus_Points=("CVC Bonus Points", "sum")
+).reset_index()
+
+owner_cvc_summary["CVC_Impact_%"] = (owner_cvc_summary["CVC_Bonus_Points"] / owner_cvc_summary["Team_Total_Points"]) * 100
+owner_cvc_summary = owner_cvc_summary.sort_values(by="CVC_Bonus_Points", ascending=False)
+
+st.subheader("💥 Captain/Vice-Captain Impact Analysis")
+st.dataframe(owner_cvc_summary.style.format({"CVC_Impact_%": "{:.0f}%", "CVC_Bonus_Points": "{:.0f}", "Team_Total_Points": "{:.0f}"}))
+
+st.subheader("🔮 What-If Best C/VC Optimization")
+
+what_if_results = []
+
+for owner, group in points_df.groupby("Owner"):
+    owner_players = group.copy()
+
+    # Sort players by points scored
+    sorted_players = owner_players.sort_values("Total Points", ascending=False).reset_index(drop=True)
+
+    # Best possible Captain and Vice-Captain based on total points
+    best_captain = sorted_players.iloc[0]
+    best_vice_captain = sorted_players.iloc[1] if len(sorted_players) > 1 else None
+
+    # Calculate ideal bonus: Captain gets 2x, VC gets 1.5x
+    best_captain_bonus = best_captain["Total Points"]
+    best_vice_captain_bonus = best_vice_captain["Total Points"] * 0.5 if best_vice_captain is not None else 0
+
+    # Actual total points (without C/VC boost)
+    base_points = group["Total Points"].sum()
+
+    # Best possible total
+    optimized_total = base_points + best_captain_bonus + best_vice_captain_bonus
+
+    what_if_results.append({
+        "Owner": owner,
+        "Best Captain": best_captain["Player Name"],
+        "Best VC": best_vice_captain["Player Name"] if best_vice_captain is not None else "N/A",
+        "Best C/VC Bonus": round(best_captain_bonus + best_vice_captain_bonus),
+        "Optimized Team Total": round(optimized_total)
+    })
+
+what_if_df = pd.DataFrame(what_if_results).sort_values("Optimized Team Total", ascending=False).reset_index(drop=True)
+
+st.dataframe(
+    what_if_df.style.format({
+        "Best C/VC Bonus": "{:.0f}",
+        "Optimized Team Total": "{:.0f}"
+    })
+)
+
 # --- Player Summary Messages ---
 def get_message(gained_points, owner):
     high_scorer_msgs = [
@@ -174,7 +284,7 @@ def get_message(gained_points, owner):
 
     return msg.format(owner=owner, points=gained_points)
 
-with st.expander("📋 Last Match Summary Messages"):
+with st.expander("📋 Last Match Summary"):
     for index, row in df_diff.iterrows():
         owner = row["Owners"]
         gained_points = int(row[latest_col])
