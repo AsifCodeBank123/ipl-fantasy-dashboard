@@ -147,7 +147,7 @@ else:
 
 
 # --- Inputs ---
-n_matches_played = 5
+n_matches_played = 6
 total_matches = 10
 
 # --- Dropdown of upcoming matches ---
@@ -183,6 +183,64 @@ else:
 df_diff = df.copy()
 df_diff.iloc[:, 2:] = df.iloc[:, 2:].diff(axis=1).fillna(df.iloc[:, 2:3])
 latest_col = df_diff.columns[-1]
+
+# --- Top 4 Appearance Count ---
+top4_count = {owner: 0 for owner in df["Owners"]}
+for idx, update in enumerate(df.columns[1:]):
+    if idx == 0:
+        top_gainers = df.nlargest(4, update)
+    else:
+        top_gainers = df_diff.nlargest(4, update)
+
+    for owner in top_gainers["Owners"]:
+        top4_count[owner] += 1
+
+# --- Prediction Table ---
+st.subheader("📊 Predicted Next Match Scores")
+
+predictions = []
+x = np.arange(len(df.columns[1:])).reshape(-1, 1)
+
+for i, owner in enumerate(df["Owners"]):
+    y = df.iloc[i, 1:].values.reshape(-1, 1)
+    model = LinearRegression().fit(x, y)
+    last_score = y[-1][0]
+
+    # Filter relevant players
+    owner_players = points_df[ 
+        (points_df["Owner"] == owner) & 
+        (points_df["Team"].isin(teams_playing)) &
+        (~points_df["Player Name"].isin(non_playing_players))
+    ]
+
+    avg_next_points = owner_players["Total Points"].sum() / n_matches_played if not owner_players.empty else 0
+    predicted_next = last_score + avg_next_points
+    change_pct = ((predicted_next - last_score) / last_score) * 100 if last_score else 0
+    top_appearance = top4_count[owner]
+
+    predictions.append([ 
+        owner, 
+        top_appearance, 
+        round(last_score), 
+        round(predicted_next), 
+        f"{change_pct:.1f}%", 
+        owner_players.shape[0]
+    ])
+
+merged_df = pd.DataFrame(predictions, columns=[
+    "Owners", "Top 4 Appearances", "Last Score", "Predicted Next Score", "Change (%)", "Players in Next Match"
+])
+
+merged_df["Projected Final Score"] = merged_df["Last Score"] + \
+    (merged_df["Predicted Next Score"] - merged_df["Last Score"]) * (total_matches - n_matches_played)
+total_projected = merged_df["Projected Final Score"].sum()
+merged_df["Winning Chances (%)"] = (merged_df["Projected Final Score"] / total_projected * 100).round(1)
+merged_df.drop(columns=["Projected Final Score"], inplace=True)
+merged_df.insert(0, "Rank", merged_df["Winning Chances (%)"].rank(method='first', ascending=False).astype(int))
+merged_df = merged_df.sort_values(by="Rank").reset_index(drop=True)
+
+# Display the prediction table
+st.dataframe(merged_df, use_container_width=True)
 
 # --- Owner of the Match Highlight ---
 st.subheader("🏅 Owner of the Match")
@@ -312,17 +370,61 @@ try:
 except FileNotFoundError:
     st.error("`unsold_players.csv` not found. Please add the file to the project directory.")
 
+# --- Trade Suggestions Block ---
 
-# --- Top 4 Appearance Count ---
-top4_count = {owner: 0 for owner in df["Owners"]}
-for idx, update in enumerate(df.columns[1:]):
-    if idx == 0:
-        top_gainers = df.nlargest(4, update)
-    else:
-        top_gainers = df_diff.nlargest(4, update)
+st.header("🔁 Trade Suggestions")
 
-    for owner in top_gainers["Owners"]:
-        top4_count[owner] += 1
+# Budget left per owner (from uploaded image)
+owner_budget = {
+    "Mahesh": 40, "Sanskar": 0, "Johnson": 80, "Asif": 310, "Pritam": 40,
+    "Umesh": 30, "Lalit": 0, "Somansh": 0, "Wilfred": 0, "Pritesh": 130
+}
+
+# Load data
+points_df = pd.read_csv("points.csv")  # Must include Player Name, Owner, Total Points, Player Value
+unsold_df = pd.read_csv("unsold_players.csv")  # Must include Player Name, Team, Points, Base Price
+
+# Calculate Points per Dollar for prioritization
+unsold_df["PointsPerDollar"] = unsold_df["Points"] / unsold_df["Base Price"]
+
+# Suggest trades
+trade_suggestions = []
+
+for owner, budget in owner_budget.items():
+    # Underperforming players: points less than team average
+    owner_players = points_df[points_df["Owner"] == owner]
+    if owner_players.empty:
+        continue
+    avg_points = owner_players["Total Points"].mean()
+    underperformers = owner_players[owner_players["Total Points"] < avg_points]
+
+    # Affordable unsold players sorted by PointsPerDollar
+    affordable_players = unsold_df[unsold_df["Base Price"] <= budget].sort_values(
+        by="PointsPerDollar", ascending=False
+    ).head(3)  # Top 3 picks
+
+    for _, row in underperformers.iterrows():
+        for _, new_row in affordable_players.iterrows():
+            trade_suggestions.append({
+                "Owner": owner,
+                "Release": row["Player Name"],
+                "Release Value": row["Player Value"],
+                "Pick": new_row["Player Name"],
+                "Pick Price": new_row["Base Price"],
+                "Expected Gain": round(new_row["Points"] - row["Total Points"], 1)
+            })
+
+trade_df = pd.DataFrame(trade_suggestions)
+
+if not trade_df.empty:
+    st.dataframe(
+        trade_df[["Owner", "Release", "Release Value", "Pick", "Pick Price", "Expected Gain"]]
+        .sort_values(by="Expected Gain", ascending=False)
+        .reset_index(drop=True)
+    )
+else:
+    st.info("No suitable trade suggestions based on current budget and player performance.")
+
 
 # --- Line Chart Plot ---
 st.subheader("📈 Owners Performance Over Time")
@@ -341,52 +443,6 @@ ax.grid(True)
 ax.legend(fontsize=8)
 st.pyplot(fig)
 
-# --- Prediction Table ---
-st.subheader("📊 Predicted Next Match Scores")
-
-predictions = []
-x = np.arange(len(df.columns[1:])).reshape(-1, 1)
-
-for i, owner in enumerate(df["Owners"]):
-    y = df.iloc[i, 1:].values.reshape(-1, 1)
-    model = LinearRegression().fit(x, y)
-    last_score = y[-1][0]
-
-    # Filter relevant players
-    owner_players = points_df[ 
-        (points_df["Owner"] == owner) & 
-        (points_df["Team"].isin(teams_playing)) &
-        (~points_df["Player Name"].isin(non_playing_players))
-    ]
-
-    avg_next_points = owner_players["Total Points"].sum() / n_matches_played if not owner_players.empty else 0
-    predicted_next = last_score + avg_next_points
-    change_pct = ((predicted_next - last_score) / last_score) * 100 if last_score else 0
-    top_appearance = top4_count[owner]
-
-    predictions.append([ 
-        owner, 
-        top_appearance, 
-        round(last_score), 
-        round(predicted_next), 
-        f"{change_pct:.1f}%", 
-        owner_players.shape[0]
-    ])
-
-merged_df = pd.DataFrame(predictions, columns=[
-    "Owners", "Top 4 Appearances", "Last Score", "Predicted Next Score", "Change (%)", "Players in Next Match"
-])
-
-merged_df["Projected Final Score"] = merged_df["Last Score"] + \
-    (merged_df["Predicted Next Score"] - merged_df["Last Score"]) * (total_matches - n_matches_played)
-total_projected = merged_df["Projected Final Score"].sum()
-merged_df["Winning Chances (%)"] = (merged_df["Projected Final Score"] / total_projected * 100).round(1)
-merged_df.drop(columns=["Projected Final Score"], inplace=True)
-merged_df.insert(0, "Rank", merged_df["Winning Chances (%)"].rank(method='first', ascending=False).astype(int))
-merged_df = merged_df.sort_values(by="Rank").reset_index(drop=True)
-
-# Display the prediction table
-st.dataframe(merged_df, use_container_width=True)
 
 st.markdown("---")
 st.caption("Made with ❤️ using Streamlit")
