@@ -209,7 +209,7 @@ for i, owner in enumerate(df["Owners"]):
     # Filter relevant players
     owner_players = points_df[ 
         (points_df["Owner"] == owner) & 
-        (points_df["Team"].isin(teams_playing)) &
+        (points_df["Team"].isin(teams_playing)) & 
         (~points_df["Player Name"].isin(non_playing_players))
     ]
 
@@ -236,11 +236,14 @@ merged_df["Projected Final Score"] = merged_df["Last Score"] + \
 total_projected = merged_df["Projected Final Score"].sum()
 merged_df["Winning Chances (%)"] = (merged_df["Projected Final Score"] / total_projected * 100).round(1)
 merged_df.drop(columns=["Projected Final Score"], inplace=True)
-merged_df.insert(0, "Rank", merged_df["Winning Chances (%)"].rank(method='first', ascending=False).astype(int))
+
+# Rank based on Last Score, not Winning Chances
+merged_df.insert(0, "Rank", merged_df["Last Score"].rank(method='first', ascending=False).astype(int))
 merged_df = merged_df.sort_values(by="Rank").reset_index(drop=True)
 
 # Display the prediction table
 st.dataframe(merged_df, use_container_width=True)
+
 
 # --- Owner of the Match Highlight ---
 st.subheader("🏅 Owner of the Match")
