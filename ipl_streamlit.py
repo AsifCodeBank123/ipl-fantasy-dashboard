@@ -290,6 +290,29 @@ with st.expander("📋 Last Match Summary"):
         gained_points = int(row[latest_col])
         st.write(get_message(gained_points, owner))
 
+# --- Load Unsold Players Data ---
+try:
+    unsold_df = pd.read_csv("unsold_players.csv")
+
+    if not unsold_df.empty and "Points" in unsold_df.columns:
+        # Ensure numeric points
+        unsold_df["Points"] = pd.to_numeric(unsold_df["Points"], errors="coerce")
+        
+        # Drop rows where points are NaN
+        unsold_df = unsold_df.dropna(subset=["Points"])
+
+        # Sort and select top performers
+        top_unsold_players = unsold_df.sort_values(by="Points", ascending=False).head(10).reset_index(drop=True)
+
+        # Display the section
+        st.markdown("## 🔍 Players to Watch Out for in Mini Auction")
+        st.dataframe(top_unsold_players.style.format({"Points": "{:.1f}"}))
+    else:
+        st.warning("Unsold players data is empty or missing 'Points' column.")
+except FileNotFoundError:
+    st.error("`unsold_players.csv` not found. Please add the file to the project directory.")
+
+
 # --- Top 4 Appearance Count ---
 top4_count = {owner: 0 for owner in df["Owners"]}
 for idx, update in enumerate(df.columns[1:]):
