@@ -196,7 +196,7 @@ for idx, update in enumerate(df.columns[1:]):
         top4_count[owner] += 1
 
 # --- Prediction Table ---
-st.subheader("📊 Predicted Next Match Scores")
+st.subheader("📊🏆 Owner Rankings: Current vs Predicted (Next Match Impact)")
 
 predictions = []
 x = np.arange(len(df.columns[1:])).reshape(-1, 1)
@@ -370,61 +370,55 @@ try:
 except FileNotFoundError:
     st.error("`unsold_players.csv` not found. Please add the file to the project directory.")
 
-# --- Trade Suggestions Block ---
+# --- Trade Suggestions: Top 2 to Release and Pick ---
 
-st.header("🔁 Trade Suggestions")
+st.header("♻️ Release & Reinforce: Underperformers Out, Smart Picks In")
 
-# Budget left per owner (from uploaded image)
-owner_budget = {
-    "Mahesh": 40, "Sanskar": 0, "Johnson": 80, "Asif": 310, "Pritam": 40,
-    "Umesh": 30, "Lalit": 0, "Somansh": 0, "Wilfred": 0, "Pritesh": 130
+# Clean names
+points_df["Player Name"] = points_df["Player Name"].str.strip()
+unsold_df["Player Name"] = unsold_df["Player Name"].str.strip()
+
+# Owner budget left
+owner_budgets = {
+    "Mahesh": 40, "Sanskar": 0, "Johnson": 80, "Asif": 310,
+    "Pritam": 40, "Umesh": 30, "Lalit": 0, "Somansh": 0,
+    "Wilfred": 0, "Pritesh": 130
 }
 
-# Load data
-points_df = pd.read_csv("points.csv")  # Must include Player Name, Owner, Total Points, Player Value
-unsold_df = pd.read_csv("unsold_players.csv")  # Must include Player Name, Team, Points, Base Price
+# Track picked unsold players to avoid duplicates
+picked_unsold_players = set()
 
-# Calculate Points per Dollar for prioritization
-unsold_df["PointsPerDollar"] = unsold_df["Points"] / unsold_df["Base Price"]
+trade_rows = []
 
-# Suggest trades
-trade_suggestions = []
+for owner, budget in owner_budgets.items():
+    team_players = points_df[points_df["Owner"] == owner]
 
-for owner, budget in owner_budget.items():
-    # Underperforming players: points less than team average
-    owner_players = points_df[points_df["Owner"] == owner]
-    if owner_players.empty:
-        continue
-    avg_points = owner_players["Total Points"].mean()
-    underperformers = owner_players[owner_players["Total Points"] < avg_points]
+    # Select 2 underperformers to release
+    underperformers = team_players.nsmallest(2, "Total Points")
+    release_value = underperformers["Player Value"].sum()
+    new_budget = budget + release_value
 
-    # Affordable unsold players sorted by PointsPerDollar
-    affordable_players = unsold_df[unsold_df["Base Price"] <= budget].sort_values(
-        by="PointsPerDollar", ascending=False
-    ).head(3)  # Top 3 picks
+    # Pick best 2 affordable unique unsold players
+    affordable_unsold = unsold_df[
+        (unsold_df["Base Price"] <= new_budget) &
+        (~unsold_df["Player Name"].isin(picked_unsold_players))
+    ].sort_values("Points", ascending=False)
 
-    for _, row in underperformers.iterrows():
-        for _, new_row in affordable_players.iterrows():
-            trade_suggestions.append({
-                "Owner": owner,
-                "Release": row["Player Name"],
-                "Release Value": row["Player Value"],
-                "Pick": new_row["Player Name"],
-                "Pick Price": new_row["Base Price"],
-                "Expected Gain": round(new_row["Points"] - row["Total Points"], 1)
-            })
+    top_picks = affordable_unsold.head(2)
+    picked_unsold_players.update(top_picks["Player Name"].tolist())
 
-trade_df = pd.DataFrame(trade_suggestions)
+    trade_rows.append({
+        "Owner": owner,
+        "Release": ", ".join(underperformers["Player Name"].values),
+        "Pick": ", ".join(top_picks["Player Name"].values) if not top_picks.empty else "None"
+    })
 
-if not trade_df.empty:
-    st.dataframe(
-        trade_df[["Owner", "Release", "Release Value", "Pick", "Pick Price", "Expected Gain"]]
-        .sort_values(by="Expected Gain", ascending=False)
-        .reset_index(drop=True)
-    )
-else:
-    st.info("No suitable trade suggestions based on current budget and player performance.")
+# Create dataframe
+trade_df = pd.DataFrame(trade_rows)
 
+# Display block
+st.subheader("🔁 Smart Trade Suggestions (with Unique Picks & Budget Adjustments)")
+st.dataframe(trade_df)
 
 # --- Line Chart Plot ---
 st.subheader("📈 Owners Performance Over Time")
