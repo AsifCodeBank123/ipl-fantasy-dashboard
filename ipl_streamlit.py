@@ -191,7 +191,6 @@ for idx, update in enumerate(df.columns[1:]):
         top_gainers = df.nlargest(4, update)
     else:
         top_gainers = df_diff.nlargest(4, update)
-
     for owner in top_gainers["Owners"]:
         top4_count[owner] += 1
 
@@ -207,9 +206,9 @@ for i, owner in enumerate(df["Owners"]):
     last_score = y[-1][0]
 
     # Filter relevant players
-    owner_players = points_df[ 
-        (points_df["Owner"] == owner) & 
-        (points_df["Team"].isin(teams_playing)) & 
+    owner_players = points_df[
+        (points_df["Owner"] == owner) &
+        (points_df["Team"].isin(teams_playing)) &
         (~points_df["Player Name"].isin(non_playing_players))
     ]
 
@@ -218,26 +217,48 @@ for i, owner in enumerate(df["Owners"]):
     change_pct = ((predicted_next - last_score) / last_score) * 100 if last_score else 0
     top_appearance = top4_count[owner]
 
-    predictions.append([ 
-        owner, 
-        top_appearance, 
-        round(last_score), 
-        round(predicted_next), 
-        f"{change_pct:.1f}%", 
+    predictions.append([
+        owner,
+        top_appearance,
+        round(last_score),
+        round(predicted_next),
+        f"{change_pct:.1f}%",
         owner_players.shape[0]
     ])
 
 merged_df = pd.DataFrame(predictions, columns=[
-    "Owners", "Top 4 Appearances", "Last Score", "Predicted Next Score", "Change (%)", "Players in Next Match"
+    "Owners", "Top 4 Appearances", "Last Score", "Predicted Next Score",
+    "Change (%)", "Players in Next Match"
 ])
 
+# --- Add Rank Delta Columns ---
+merged_df = merged_df.sort_values(by="Last Score", ascending=False).reset_index(drop=True)
+last_scores = merged_df["Last Score"].values
+
+next_rank_deltas = []
+first_rank_deltas = []
+
+for idx, score in enumerate(last_scores):
+    # Delta to next higher rank (i.e., previous in sorted list)
+    if idx == 0:
+        next_rank_deltas.append("")
+        first_rank_deltas.append("")
+    else:
+        next_rank_deltas.append(round(last_scores[idx - 1] - score, 1))
+        first_rank_deltas.append(round(last_scores[0] - score, 1))
+
+# Insert delta columns after Last Score
+merged_df.insert(3, "Next Rank Delta", next_rank_deltas)
+merged_df.insert(4, "1st Rank Delta", first_rank_deltas)
+
+# Winning Chances
 merged_df["Projected Final Score"] = merged_df["Last Score"] + \
     (merged_df["Predicted Next Score"] - merged_df["Last Score"]) * (total_matches - n_matches_played)
 total_projected = merged_df["Projected Final Score"].sum()
 merged_df["Winning Chances (%)"] = (merged_df["Projected Final Score"] / total_projected * 100).round(1)
 merged_df.drop(columns=["Projected Final Score"], inplace=True)
 
-# Rank based on Last Score, not Winning Chances
+# Rank based on Last Score
 merged_df.insert(0, "Rank", merged_df["Last Score"].rank(method='first', ascending=False).astype(int))
 merged_df = merged_df.sort_values(by="Rank").reset_index(drop=True)
 
