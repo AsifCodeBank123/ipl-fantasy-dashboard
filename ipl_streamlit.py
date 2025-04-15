@@ -90,30 +90,11 @@ if "CVC Bonus Points" not in points_df.columns:
 else:
     points_df["CVC Bonus Points"] = points_df["CVC Bonus Points"].astype(float)
 
-# Apply captain and vice-captain multipliers
+# Apply captain and vice-captain bonus points
 for owner, (captain, vice_captain) in captain_vc_dict.items():
-    # Apply captain bonus
-    points_df.loc[
-        (points_df["Owner"] == owner) & (points_df["Player Name"] == captain),
-        "CVC Bonus Points"
-    ] = (
-        points_df.loc[
-            (points_df["Owner"] == owner) & (points_df["Player Name"] == captain),
-            "Total Points"
-        ] #* 2.0
-    )
-
-    # Apply vice-captain bonus
-    points_df.loc[
-        (points_df["Owner"] == owner) & (points_df["Player Name"] == vice_captain),
-        "CVC Bonus Points"
-    ] = (
-        points_df.loc[
-            (points_df["Owner"] == owner) & (points_df["Player Name"] == vice_captain),
-            "Total Points"
-        ] #* 1.5
-    )
-
+    for role, multiplier in zip([captain, vice_captain], [1.0, 1.0]):  # set back to 2.0, 1.5 when ready
+        mask = (points_df["Owner"] == owner) & (points_df["Player Name"] == role)
+        points_df.loc[mask, "CVC Bonus Points"] = points_df.loc[mask, "Total Points"] * multiplier
 
 
 # Define IST timezone
@@ -121,62 +102,46 @@ ist = pytz.timezone("Asia/Kolkata")
 # --- Get current time ---
 current_time = datetime.now(ist)
 
-# --- Convert match dates and times to datetime format in IST ---
+# Convert match date & time to timezone-aware datetime
 match_df["DateTime"] = pd.to_datetime(
     match_df["Date"] + " " + match_df["Time"], format="%d-%b-%y %I:%M %p"
-)
-match_df["DateTime"] = match_df["DateTime"].dt.tz_localize("Asia/Kolkata")
+).dt.tz_localize("Asia/Kolkata")
 
-# --- Filter matches after the current time ---
+# Filter upcoming matches
 upcoming_matches_df = match_df[match_df["DateTime"] > current_time].copy()
+upcoming_matches_df["TimeDiffInHours"] = (upcoming_matches_df["DateTime"] - current_time).dt.total_seconds() / 3600
 
-# --- Calculate time difference ---
-upcoming_matches_df["TimeDiff"] = upcoming_matches_df["DateTime"] - current_time
-upcoming_matches_df["TimeDiffInHours"] = upcoming_matches_df["TimeDiff"].dt.total_seconds() / 3600
-
-# --- Filter for matches within the next 4 hours ---
-matches_within_4_hours = upcoming_matches_df[upcoming_matches_df["TimeDiffInHours"] <= 4]
-
-# --- Select next match ---
-if not matches_within_4_hours.empty:
-    next_match = matches_within_4_hours.iloc[0]["Match"]
-elif not upcoming_matches_df.empty:
-    next_match = upcoming_matches_df.iloc[0]["Match"]
+# Select next match
+if not upcoming_matches_df.empty:
+    next_match_row = upcoming_matches_df[upcoming_matches_df["TimeDiffInHours"] <= 4].head(1)
+    next_match = next_match_row["Match"].values[0] if not next_match_row.empty else upcoming_matches_df.iloc[0]["Match"]
 else:
     next_match = "No upcoming match"
 
-
 # --- Inputs ---
 n_matches_played = 6
-total_matches = 10
+total_matches = 14
 
 # --- Dropdown of upcoming matches ---
 upcoming_matches = upcoming_matches_df["Match"].tolist()
 
-# Add next match to the dropdown
-match_input = st.selectbox("Current/Next Match", options=upcoming_matches)
+# Dropdown to select match (pre-select next match if found)
+match_input = st.selectbox("Current/Next Match", options=upcoming_matches_df["Match"].tolist(), index=0)
 
-# Ensure match_input is valid before using it
 if match_input:
-    # Split the selected match into two teams
     teams_playing = match_input.split(" vs ")
-
-    # Validate that teams_playing has exactly two elements
     if len(teams_playing) == 2:
-        # Filter players based on the selected teams
-        playing_players = points_df[points_df["Team"].isin(teams_playing)]["Player Name"].unique().tolist()
-        playing_players.sort()
-
-        # Dynamically update the multiselect for non-playing players from selected teams
+        team1, team2 = teams_playing
+        match_players = sorted(points_df[points_df["Team"].isin([team1, team2])]["Player Name"].unique())
         non_playing_players = st.multiselect(
-            f"Select Non-Playing Players from {teams_playing[0]}/{teams_playing[1]}:",
-            options=playing_players,
-            default=[]
+            f"Select Non-Playing Players from {team1}/{team2}:",
+            options=match_players
         )
     else:
-        st.error("Error: Match format is incorrect or incomplete.")
+        st.error("Match format error. Please check the selected match.")
 else:
-    st.error("No match selected. Please select a match.")
+    st.error("No match selected.")
+
 
 
 # --- Calculate Update Differences ---
@@ -220,8 +185,8 @@ for i, owner in enumerate(df["Owners"]):
     predictions.append([
         owner,
         top_appearance,
-        round(last_score),
-        round(predicted_next),
+        (last_score),
+        int(predicted_next),
         f"{change_pct:.1f}%",
         owner_players.shape[0]
     ])
@@ -235,6 +200,13 @@ merged_df = pd.DataFrame(predictions, columns=[
 merged_df = merged_df.sort_values(by="Last Score", ascending=False).reset_index(drop=True)
 last_scores = merged_df["Last Score"].values
 
+def format_delta(a, b):
+    delta = a - b
+    if float(delta).is_integer() and float(a).is_integer() and float(b).is_integer():
+        return int(delta)
+    else:
+        return round(delta, 1)
+
 next_rank_deltas = []
 first_rank_deltas = []
 
@@ -244,8 +216,8 @@ for idx, score in enumerate(last_scores):
         next_rank_deltas.append("")
         first_rank_deltas.append("")
     else:
-        next_rank_deltas.append(round(last_scores[idx - 1] - score, 1))
-        first_rank_deltas.append(round(last_scores[0] - score, 1))
+        next_rank_deltas.append(format_delta(last_scores[idx - 1] - score, 1))
+        first_rank_deltas.append(format_delta(last_scores[0] - score, 1))
 
 # Insert delta columns after Last Score
 merged_df.insert(3, "Next Rank Delta", next_rank_deltas)
