@@ -272,64 +272,6 @@ latest_diff = df_diff[["Owners", latest_col]].sort_values(by=latest_col, ascendi
 top_owner_row = latest_diff.iloc[0]
 st.success(f"🥇 {top_owner_row['Owners']} scored highest in the last match with {int(top_owner_row[latest_col])} points!")
 
-# --- Player Impact Table ---
-st.subheader("🧠 Player Impact - Next Match Focus")
-impact_df = points_df[(points_df["Team"].isin(teams_playing)) & (~points_df["Player Name"].isin(non_playing_players))]
-top_players = impact_df.sort_values(by="Total Points", ascending=False).head(10)
-st.dataframe(top_players[["Player Name", "Team", "Owner", "Total Points"]], use_container_width=True)
-
-# Group by owner
-owner_cvc_summary = points_df.groupby("Owner").agg(
-    Team_Total_Points=("Total Points", "sum"),
-    CVC_Bonus_Points=("CVC Bonus Points", "sum")
-).reset_index()
-
-owner_cvc_summary["CVC_Impact_%"] = (owner_cvc_summary["CVC_Bonus_Points"] / owner_cvc_summary["Team_Total_Points"]) * 100
-owner_cvc_summary = owner_cvc_summary.sort_values(by="CVC_Bonus_Points", ascending=False)
-
-st.subheader("💥 Captain/Vice-Captain Impact Analysis")
-st.dataframe(owner_cvc_summary.style.format({"CVC_Impact_%": "{:.0f}%", "CVC_Bonus_Points": "{:.0f}", "Team_Total_Points": "{:.0f}"}))
-
-st.subheader("🔮 What-If Best C/VC Optimization")
-
-what_if_results = []
-
-for owner, group in points_df.groupby("Owner"):
-    owner_players = group.copy()
-
-    # Sort players by points scored
-    sorted_players = owner_players.sort_values("Total Points", ascending=False).reset_index(drop=True)
-
-    # Best possible Captain and Vice-Captain based on total points
-    best_captain = sorted_players.iloc[0]
-    best_vice_captain = sorted_players.iloc[1] if len(sorted_players) > 1 else None
-
-    # Calculate ideal bonus: Captain gets 2x, VC gets 1.5x
-    best_captain_bonus = best_captain["Total Points"]
-    best_vice_captain_bonus = best_vice_captain["Total Points"] * 0.5 if best_vice_captain is not None else 0
-
-    # Actual total points (without C/VC boost)
-    base_points = group["Total Points"].sum()
-
-    # Best possible total
-    optimized_total = base_points + best_captain_bonus + best_vice_captain_bonus
-
-    what_if_results.append({
-        "Owner": owner,
-        "Best Captain": best_captain["Player Name"],
-        "Best VC": best_vice_captain["Player Name"] if best_vice_captain is not None else "N/A",
-        "Best C/VC Bonus": round(best_captain_bonus + best_vice_captain_bonus),
-        "Optimized Team Total": round(optimized_total)
-    })
-
-what_if_df = pd.DataFrame(what_if_results).sort_values("Optimized Team Total", ascending=False).reset_index(drop=True)
-
-st.dataframe(
-    what_if_df.style.format({
-        "Best C/VC Bonus": "{:.0f}",
-        "Optimized Team Total": "{:.0f}"
-    })
-)
 
 # --- Player Summary Messages ---
 def get_message(gained_points, owner):
@@ -372,6 +314,86 @@ with st.expander("📋 Last Match Summary"):
         gained_points = int(row[latest_col])
         st.write(get_message(gained_points, owner))
 
+# --- Player Impact Table ---
+st.subheader("🧠 Player Impact - Next Match Focus")
+impact_df = points_df[(points_df["Team"].isin(teams_playing)) & (~points_df["Player Name"].isin(non_playing_players))]
+top_players = impact_df.sort_values(by="Total Points", ascending=False).head(10)
+st.dataframe(top_players[["Player Name", "Team", "Owner", "Total Points"]], use_container_width=True)
+
+# Group by owner
+owner_cvc_summary = points_df.groupby("Owner").agg(
+    Team_Total_Points=("Total Points", "sum"),
+    CVC_Bonus_Points=("CVC Bonus Points", "sum")
+).reset_index()
+
+owner_cvc_summary["CVC_Impact_%"] = (owner_cvc_summary["CVC_Bonus_Points"] / owner_cvc_summary["Team_Total_Points"]) * 100
+owner_cvc_summary = owner_cvc_summary.sort_values(by="CVC_Bonus_Points", ascending=False)
+
+st.subheader("💥 Captain/Vice-Captain Impact Analysis")
+st.dataframe(owner_cvc_summary.style.format({"CVC_Impact_%": "{:.0f}%", "CVC_Bonus_Points": "{:.0f}", "Team_Total_Points": "{:.0f}"}))
+
+st.subheader("🔮 What-If Best C/VC Optimization")
+
+what_if_results = []
+
+# Captain and Vice-Captain maps
+captain_map = {
+    "Mahesh": "Jos Buttler", "Asif": "Pat Cummins", "Pritesh": "Abhishek Sharma",
+    "Pritam": "Suryakumar Yadav", "Lalit": "Shreyas Iyer", "Umesh": "Travis Head",
+    "Sanskar": "Hardik Pandya", "Johnson": "Sunil Naraine", "Somansh": "Rashid Khan",
+    "Wilfred": "Rachin Ravindra"
+}
+vice_captain_map = {
+    "Mahesh": "N. Tilak Varma", "Asif": "Venkatesh Iyer", "Pritesh": "Yashasvi Jaiswal",
+    "Pritam": "Virat Kohli", "Lalit": "Shubman Gill", "Umesh": "Rohit Sharma",
+    "Sanskar": "Axar Patel", "Johnson": "Sanju Samson", "Somansh": "Phil Salt",
+    "Wilfred": "KL Rahul"
+}
+
+for owner, group in points_df.groupby("Owner"):
+    owner_players = group.copy()
+
+    # Base team total (excluding actual C/VC bonus)
+    captain_name = captain_map.get(owner)
+    vice_captain_name = vice_captain_map.get(owner)
+
+    captain_points = owner_players[owner_players["Player Name"] == captain_name]["Total Points"].sum()
+    vice_captain_points = owner_players[owner_players["Player Name"] == vice_captain_name]["Total Points"].sum()
+
+    actual_bonus = captain_points + (vice_captain_points * 0.5)
+    actual_total = owner_players["Total Points"].sum()
+    base_total = actual_total - actual_bonus
+
+    # Best C/VC selection
+    sorted_players = owner_players.sort_values("Total Points", ascending=False).reset_index(drop=True)
+    best_captain = sorted_players.iloc[0]
+    best_vice_captain = sorted_players.iloc[1] if len(sorted_players) > 1 else None
+
+    best_bonus = best_captain["Total Points"]
+    if best_vice_captain is not None:
+        best_bonus += best_vice_captain["Total Points"] * 0.5
+
+    optimized_total = base_total + best_bonus
+
+    what_if_results.append({
+        "Owner": owner,
+        "Best Captain": best_captain["Player Name"],
+        "Best VC": best_vice_captain["Player Name"] if best_vice_captain is not None else "N/A",
+        "Best C/VC Bonus": round(best_bonus),
+        "Optimized Team Total": round(optimized_total)
+    })
+
+what_if_df = pd.DataFrame(what_if_results).sort_values("Optimized Team Total", ascending=False).reset_index(drop=True)
+
+st.dataframe(
+    what_if_df.style.format({
+        "Best C/VC Bonus": "{:.0f}",
+        "Optimized Team Total": "{:.0f}"
+    })
+)
+
+
+
 # --- Load Unsold Players Data ---
 try:
     unsold_df = pd.read_csv("unsold_players.csv")
@@ -394,55 +416,60 @@ try:
 except FileNotFoundError:
     st.error("`unsold_players.csv` not found. Please add the file to the project directory.")
 
-# --- Trade Suggestions: Top 2 to Release and Pick ---
+# --- Trade Suggestions (Advanced) ---
 
-st.header("♻️ Release & Reinforce: Underperformers Out, Smart Picks In")
+st.subheader("🔄💰 Trade Suggestions Based on Team Performance and Budget")
 
-# Clean names
-points_df["Player Name"] = points_df["Player Name"].str.strip()
-unsold_df["Player Name"] = unsold_df["Player Name"].str.strip()
-
-# Owner budget left
-owner_budgets = {
-    "Mahesh": 40, "Sanskar": 0, "Johnson": 80, "Asif": 310,
-    "Pritam": 40, "Umesh": 30, "Lalit": 0, "Somansh": 0,
-    "Wilfred": 0, "Pritesh": 130
+# Budget data from your image (could be loaded from a CSV as well)
+budget_data = {
+    "Mahesh": 40, "Sanskar": 0, "Johnson": 80, "Asif": 310, "Pritam": 40,
+    "Umesh": 30, "Lalit": 0, "Somansh": 0, "Wilfred": 0, "Pritesh": 130
 }
 
-# Track picked unsold players to avoid duplicates
-picked_unsold_players = set()
+trade_suggestions = []
 
-trade_rows = []
+for owner in points_df["Owner"].unique():
+    owner_points = points_df[points_df["Owner"] == owner].copy()
+    
+    # Special handling: exclude Glenn Phillips for Wilfred
+    if owner == "Wilfred":
+        owner_points = owner_points[owner_points["Player Name"] != "Glenn Phillips"]
+    
+    # --- Get 2 lowest scoring players (excluding Glenn Phillips if owner is Wilfred) ---
+    to_release = owner_points.nsmallest(2, "Total Points")
+    release_names = to_release["Player Name"].tolist()
+    release_value = to_release["Player Value"].sum()
 
-for owner, budget in owner_budgets.items():
-    team_players = points_df[points_df["Owner"] == owner]
+    # --- Update budget with value of released players ---
+    initial_budget = budget_data.get(owner, 0)
+    updated_budget = initial_budget + release_value
 
-    # Select 2 underperformers to release
-    underperformers = team_players.nsmallest(2, "Total Points")
-    release_value = underperformers["Player Value"].sum()
-    new_budget = budget + release_value
+    # --- Identify 2 lowest scoring teams for this owner ---
+    team_scores = owner_points.groupby("Team")["Total Points"].sum().sort_values()
+    low_teams = team_scores.head(2).index.tolist()
 
-    # Pick best 2 affordable unique unsold players
-    affordable_unsold = unsold_df[
-        (unsold_df["Base Price"] <= new_budget) &
-        (~unsold_df["Player Name"].isin(picked_unsold_players))
-    ].sort_values("Points", ascending=False)
+    # --- Suggest unsold players from those teams (only if they have >0 points & within budget) ---
+    eligible_unsold = unsold_df[
+        (unsold_df["Team"].isin(low_teams)) &
+        (unsold_df["Points"] > 0) &
+        (unsold_df["Base Price"] <= updated_budget)
+    ].sort_values(by="Points", ascending=False)
 
-    top_picks = affordable_unsold.head(2)
-    picked_unsold_players.update(top_picks["Player Name"].tolist())
+    picks = eligible_unsold.head(2)["Player Name"].tolist()
 
-    trade_rows.append({
+    # --- Store suggestion row ---
+    trade_suggestions.append({
         "Owner": owner,
-        "Release": ", ".join(underperformers["Player Name"].values),
-        "Pick": ", ".join(top_picks["Player Name"].values) if not top_picks.empty else "None"
+        "Budget Before": initial_budget,
+        "Released Players": ", ".join(release_names),
+        "Value of Released": release_value,
+        "Updated Budget": updated_budget,
+        "Lowest Scoring Teams": ", ".join(low_teams),
+        "Suggested Picks": ", ".join(picks) if picks else "None"
     })
 
-# Create dataframe
-trade_df = pd.DataFrame(trade_rows)
-
-# Display block
-st.subheader("🔁 Smart Trade Suggestions (with Unique Picks & Budget Adjustments)")
-st.dataframe(trade_df)
+trade_df = pd.DataFrame(trade_suggestions)
+st.dataframe(trade_df, use_container_width=True)
 
 # --- Line Chart Plot ---
 st.subheader("📈 Owners Performance Over Time")
