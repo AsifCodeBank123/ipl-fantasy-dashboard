@@ -200,12 +200,13 @@ merged_df = pd.DataFrame(predictions, columns=[
 merged_df = merged_df.sort_values(by="Last Score", ascending=False).reset_index(drop=True)
 last_scores = merged_df["Last Score"].values
 
-def format_delta(a, b):
-    delta = a - b
-    if float(delta).is_integer() and float(a).is_integer() and float(b).is_integer():
+def format_delta(delta, decimals=1):
+    """Format delta to show integer if no decimal part, else round to the specified decimal places."""
+    if delta.is_integer():  # If the delta is an integer, show as integer
         return int(delta)
     else:
-        return round(delta, 1)
+        return round(delta, decimals)  # Else, show rounded to the specified decimal places
+
 
 next_rank_deltas = []
 first_rank_deltas = []
