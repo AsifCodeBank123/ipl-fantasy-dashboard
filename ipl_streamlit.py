@@ -402,7 +402,7 @@ elif section == "Players to Watch Out for in Mini Auction":
             top_unsold_players = unsold_df.sort_values(by="Points", ascending=False).head(10).reset_index(drop=True)
 
             # Display the section
-            st.markdown("## 🔍 Players to Watch Out for in Mini Auction",divider="orange")
+            st.markdown("## 🔍 Players to Watch Out for in Mini Auction")
             st.dataframe(top_unsold_players.style.format({"Points": "{:.1f}"}))
         else:
             st.warning("Unsold players data is empty or missing 'Points' column.")
