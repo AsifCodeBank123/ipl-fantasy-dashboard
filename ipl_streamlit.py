@@ -85,6 +85,10 @@ match_df = pd.DataFrame(match_data, columns=["Date", "Time", "Match"])
 df = pd.read_csv("owners_performance_updates.csv")
 points_df = pd.read_csv("points.csv")
 
+# Optional: wrap column headers or shorten names in your DataFrame
+points_df.columns = [col if len(col) < 15 else col[:12] + "..." for col in points_df.columns]
+
+
 # Ensure the "CVC Bonus Points" column exists and is of float type
 if "CVC Bonus Points" not in points_df.columns:
     points_df["CVC Bonus Points"] = 0.0
