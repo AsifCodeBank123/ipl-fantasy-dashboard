@@ -10,7 +10,7 @@ import plotly.express as px
 
 # --- Page Setup ---
 st.set_page_config(layout="wide", page_title="HPL Fantasy Dashboard")
-st.title("🏏 HPL Fantasy League Performance Dashboard")
+st.header("🏏 :orange[HPL] Fantasy League Performance Dashboard", divider = "orange")
 
 # --- Captain and Vice-Captain selections for each owner ---
 captain_vc_dict = {
@@ -161,20 +161,21 @@ for idx, update in enumerate(df.columns[1:]):
         top4_count[owner] += 1
 
 # Sidebar navigation
-section = st.sidebar.radio("📂 Select Section", [
-    "Owner Rankings: Current vs Predicted",
-    "Player Impact - Next Match Focus",
-    "Captain/Vice-Captain Impact Analysis",
-    "Best C/VC Suggestion",
-    "Players to Watch Out for in Mini Auction",
-    "Owner Insights & Breakdown",
-    "Owners Performance"
-])
+with st.sidebar.expander("📂 Select Section", expanded=True):
+    section=st.radio("",[
+        "Owner Rankings: Current vs Predicted",
+        "Player Impact - Next Match Focus",
+        "Captain/Vice-Captain Impact Analysis",
+        "Best C/VC Suggestion",
+        "Players to Watch Out for in Mini Auction",
+        "Owner Insights & Breakdown",
+        "Owners Performance"
+    ])
 
 
 if section == "Owner Rankings: Current vs Predicted":
     # --- Prediction Table ---
-    st.subheader("📊🏆 Owner Rankings: Current vs Predicted (Next Match Impact)")
+    st.subheader("📊🏆 Owner Rankings: Current vs Predicted (Next Match Impact)",divider="orange")
 
     predictions = []
     x = np.arange(len(df.columns[1:])).reshape(-1, 1)
@@ -254,7 +255,7 @@ if section == "Owner Rankings: Current vs Predicted":
 
 
     # --- Owner of the Match Highlight ---
-    st.subheader("🏅 Owner of the Match")
+    st.subheader("🏅 Owner of the Match",divider="orange")
     latest_diff = df_diff[["Owners", latest_col]].sort_values(by=latest_col, ascending=False)
     top_owner_row = latest_diff.iloc[0]
     st.success(f"🥇 {top_owner_row['Owners']} scored highest in the last match with {int(top_owner_row[latest_col])} points!")
@@ -303,7 +304,7 @@ if section == "Owner Rankings: Current vs Predicted":
 
 elif section == "Player Impact - Next Match Focus":
     # --- Player Impact Table ---
-    st.subheader("🧠 Player Impact - Next Match Focus")
+    st.subheader("🧠 Player Impact - Next Match Focus",divider="orange")
     impact_df = points_df[(points_df["Team"].isin(teams_playing)) & (~points_df["Player Name"].isin(non_playing_players))]
     top_players = impact_df.sort_values(by="Total Points", ascending=False).head(10)
     st.dataframe(top_players[["Player Name", "Team", "Owner", "Total Points"]], use_container_width=True)
@@ -320,11 +321,11 @@ elif section == "Captain/Vice-Captain Impact Analysis":
     owner_cvc_summary = owner_cvc_summary.sort_values(by="CVC_Bonus_Points", ascending=False)
 
    
-    st.subheader("💥 Captain/Vice-Captain Impact Analysis")
+    st.subheader("💥 Captain/Vice-Captain Impact Analysis",divider="orange")
     st.dataframe(owner_cvc_summary.style.format({"CVC_Impact_%": "{:.0f}%", "CVC_Bonus_Points": "{:.0f}", "Team_Total_Points": "{:.0f}"}))
 
 elif section == "Best C/VC Suggestion":
-    st.subheader("🔮 What-If Best C/VC Optimization")
+    st.subheader("🔮 What-If Best C/VC Optimization",divider="orange")
 
     what_if_results = []
 
@@ -401,7 +402,7 @@ elif section == "Players to Watch Out for in Mini Auction":
             top_unsold_players = unsold_df.sort_values(by="Points", ascending=False).head(10).reset_index(drop=True)
 
             # Display the section
-            st.markdown("## 🔍 Players to Watch Out for in Mini Auction")
+            st.markdown("## 🔍 Players to Watch Out for in Mini Auction",divider="orange")
             st.dataframe(top_unsold_players.style.format({"Points": "{:.1f}"}))
         else:
             st.warning("Unsold players data is empty or missing 'Points' column.")
@@ -411,7 +412,7 @@ elif section == "Players to Watch Out for in Mini Auction":
 
     # --- Trade Suggestions (Advanced with Team Balance Rule) ---
 
-    st.subheader("🔄💰 Trade Suggestions Based on Team Performance and Budget")
+    st.subheader("🔄💰 Trade Suggestions Based on Team Performance and Budget",divider="orange")
 
     # Budget data from your image (could be loaded from a CSV as well)
     budget_data = {
@@ -505,7 +506,7 @@ elif section == "Players to Watch Out for in Mini Auction":
 elif section == "Owner Insights & Breakdown":
     # --- Owner Insights Block ---
 
-    st.subheader("🧠 Owner Insights & Breakdown")
+    st.subheader("🧠 Owner Insights & Breakdown",divider="orange")
 
     selected_owner = st.selectbox("Select an Owner", sorted(points_df["Owner"].unique()))
 
@@ -555,7 +556,7 @@ elif section == "Owner Insights & Breakdown":
 
 elif section == "Owners Performance":
     # --- Line Chart Plot ---
-    st.subheader("📈 Owners Performance Over Time")
+    st.subheader("📈 Owners Performance Over Time",divider="orange")
     fig, ax = plt.subplots(figsize=(15, 5))
     cmap = plt.colormaps.get_cmap("tab10")
     colors = [cmap(i % 10) for i in range(len(df))]
