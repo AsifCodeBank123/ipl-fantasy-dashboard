@@ -1,7 +1,7 @@
 Player Name,Team,Owner,Total Points,Player Value
 MS Dhoni,CSK,Johnson,372,300
 Devon Conway,CSK,Sanskar,172,710
-Ruturaj Gaikwad,CSK,Umesh,402,1550
+Ruturaj Gaikwad (O),CSK,Umesh,402,1550
 Rahul Tripathi,CSK,Somansh,113,360
 Ravindra Jadeja,CSK,Johnson,349,990
 Ravichandran Ashwin,CSK,Somansh,220,530
@@ -35,7 +35,7 @@ Shubman Gill,GT,Lalit,627,1900
 Jos Buttler,GT,Mahesh,868,950
 Kumar Kushagra,GT,Pritam,0,100
 Anuj Rawat,GT,Lalit,0,210
-Glen Phillips,GT,Wilfred,0,600
+Glen Phillips (O),GT,Wilfred,0,600
 B. Sai Sudharsan,GT,Mahesh,655,900
 Washington Sundar,GT,Johnson,157,490
 Mahipal Lomror,GT,Pritam,0,100
@@ -160,8 +160,8 @@ Harshal Patel,SRH,Pritesh,323,620
 Wiaan Mulder,SRH,Johnson,26,200
 Mohammad Shami,SRH,Mahesh,201,950
 Rahul Chahar,SRH,Lalit,0,490
-Adam Zampa,SRH,Asif,60,740
+Adam Zampa (O),SRH,Asif,60,740
 Simarjeet Singh,SRH,Sanskar,75,180
-Noor Ahmad,CSK,Umesh,49,200
-Anshul Kamboj,CSK,Asif,0,100
-Sai Kishore,GT,Wilfred,0,270
+Noor Ahmad (S),CSK,Umesh,49,200
+Anshul Kamboj (S),CSK,Asif,0,100
+Sai Kishore (S),GT,Wilfred,0,270
