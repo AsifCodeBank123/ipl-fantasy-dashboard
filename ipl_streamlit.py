@@ -6,6 +6,7 @@ import random
 import numpy as np
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
+import plotly.express as px
 
 # --- Page Setup ---
 st.set_page_config(layout="wide", page_title="HPL Fantasy Dashboard")
@@ -481,6 +482,50 @@ for owner in points_df["Owner"].unique():
 trade_df = pd.DataFrame(trade_suggestions)
 st.dataframe(trade_df, use_container_width=True)
 
+# --- Owner Insights Block ---
+
+st.subheader("🧠 Owner Insights & Breakdown")
+
+selected_owner = st.selectbox("Select an Owner", sorted(points_df["Owner"].unique()))
+
+owner_df = points_df[points_df["Owner"] == selected_owner]
+
+# Pie chart: Points contribution per player
+fig_pie = px.pie(
+    owner_df,
+    names="Player Name",
+    values="Total Points",
+    title=f"{selected_owner}'s Player Contributions",
+    color_discrete_sequence=px.colors.qualitative.Set3
+)
+st.plotly_chart(fig_pie, use_container_width=True)
+
+# Bar chart: Team-wise point contribution
+teamwise_df = owner_df.groupby("Team")["Total Points"].sum().reset_index()
+fig_bar = px.bar(
+    teamwise_df,
+    x="Team",
+    y="Total Points",
+    title=f"{selected_owner}'s Team-wise Contributions",
+    color="Total Points",
+    color_continuous_scale="Blues"
+)
+st.plotly_chart(fig_bar, use_container_width=True)
+
+# Player table: sorted by points
+st.markdown(f"#### 📊 Detailed Player Stats for {selected_owner}")
+owner_display_df = owner_df[["Player Name", "Team", "Total Points", "Player Value"]].sort_values(by="Total Points", ascending=False)
+st.dataframe(owner_display_df, use_container_width=True)
+
+# Top & Bottom Performer
+top_player = owner_df.sort_values("Total Points", ascending=False).iloc[0]
+bottom_player = owner_df.sort_values("Total Points", ascending=True).iloc[0]
+
+col1, col2 = st.columns(2)
+with col1:
+    st.success(f"🏆 Top Performer: {top_player['Player Name']} ({top_player['Total Points']} pts)")
+with col2:
+    st.warning(f"📉 Weakest Performer: {bottom_player['Player Name']} ({bottom_player['Total Points']} pts)")
 
 # --- Line Chart Plot ---
 st.subheader("📈 Owners Performance Over Time")
