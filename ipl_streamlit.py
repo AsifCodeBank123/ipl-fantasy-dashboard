@@ -203,11 +203,11 @@ if section == "Owner Rankings: Current vs Predicted":
 
         predictions.append([
             owner,
-            top_appearance,
             (last_score),
             int(predicted_next),
             f"{change_pct:.1f}%",
-            owner_players.shape[0]
+            owner_players.shape[0],
+            top_appearance
         ])
 
     merged_df = pd.DataFrame(predictions, columns=[
