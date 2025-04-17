@@ -86,7 +86,7 @@ df = pd.read_csv("owners_performance_updates.csv")
 points_df = pd.read_csv("points.csv")
 
 # Optional: wrap column headers or shorten names in your DataFrame
-points_df.columns = [col if len(col) < 10 else col[:12] + "..." for col in points_df.columns]
+points_df.columns = [col if len(col) < 15 else col[:12] + "..." for col in points_df.columns]
 
 
 # Ensure the "CVC Bonus Points" column exists and is of float type
