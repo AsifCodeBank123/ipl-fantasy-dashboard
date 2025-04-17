@@ -86,7 +86,7 @@ df = pd.read_csv("owners_performance_updates.csv")
 points_df = pd.read_csv("points.csv")
 
 # Optional: wrap column headers or shorten names in your DataFrame
-points_df.columns = [col if len(col) < 15 else col[:12] + "..." for col in points_df.columns]
+points_df.columns = [col if len(col) < 10 else col[:12] + "..." for col in points_df.columns]
 
 
 # Ensure the "CVC Bonus Points" column exists and is of float type
@@ -211,13 +211,13 @@ if section == "Owner Rankings: Current vs Predicted":
         ])
 
     merged_df = pd.DataFrame(predictions, columns=[
-        "Owners", "Top 4 Appearances", "Last Score", "Predicted Next Score",
-        "Change (%)", "Players in Next Match"
+        "Owners", "Current Score", "Predicted Next Score",
+        "Change (%)", "Players in Next Match","Top 4 Appearances"
     ])
 
     # --- Add Rank Delta Columns ---
-    merged_df = merged_df.sort_values(by="Last Score", ascending=False).reset_index(drop=True)
-    last_scores = merged_df["Last Score"].values
+    merged_df = merged_df.sort_values(by="Current Score", ascending=False).reset_index(drop=True)
+    last_scores = merged_df["Current Score"].values
 
     def format_delta(delta, decimals=1):
         """Format delta to show integer if no decimal part, else round to the specified decimal places."""
@@ -244,14 +244,14 @@ if section == "Owner Rankings: Current vs Predicted":
     merged_df.insert(4, "1st Rank Delta", first_rank_deltas)
 
     # Winning Chances
-    merged_df["Projected Final Score"] = merged_df["Last Score"] + \
-        (merged_df["Predicted Next Score"] - merged_df["Last Score"]) * (total_matches - n_matches_played)
+    merged_df["Projected Final Score"] = merged_df["Current Score"] + \
+        (merged_df["Predicted Next Score"] - merged_df["Current Score"]) * (total_matches - n_matches_played)
     total_projected = merged_df["Projected Final Score"].sum()
     merged_df["Winning Chances (%)"] = (merged_df["Projected Final Score"] / total_projected * 100).round(1)
     merged_df.drop(columns=["Projected Final Score"], inplace=True)
 
     # Rank based on Last Score
-    merged_df.insert(0, "Rank", merged_df["Last Score"].rank(method='first', ascending=False).astype(int))
+    merged_df.insert(0, "Rank", merged_df["Current Score"].rank(method='first', ascending=False).astype(int))
     merged_df = merged_df.sort_values(by="Rank").reset_index(drop=True)
 
     # Display the prediction table
