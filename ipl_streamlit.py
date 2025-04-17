@@ -389,7 +389,7 @@ try:
 except FileNotFoundError:
     st.error("`unsold_players.csv` not found. Please add the file to the project directory.")
 
-# --- Trade Suggestions (Advanced) ---
+# --- Trade Suggestions (Advanced with Team Balance Rule) ---
 
 st.subheader("🔄💰 Trade Suggestions Based on Team Performance and Budget")
 
@@ -403,19 +403,56 @@ trade_suggestions = []
 
 for owner in points_df["Owner"].unique():
     owner_points = points_df[points_df["Owner"] == owner].copy()
-    
+
     # Special handling: exclude Glenn Phillips for Wilfred
     if owner == "Wilfred":
         owner_points = owner_points[owner_points["Player Name"] != "Glenn Phillips"]
-    
-    # --- Get 2 lowest scoring players (excluding Glenn Phillips if owner is Wilfred) ---
-    to_release = owner_points.nsmallest(2, "Total Points")
-    release_names = to_release["Player Name"].tolist()
-    release_value = to_release["Player Value"].sum()
 
-    # --- Update budget with value of released players ---
+    # --- Ensure team formation isn't broken (keep at least 1 player per team) ---
+    team_counts = owner_points["Team"].value_counts()
+
+    # Find eligible release candidates based on low scores and team balance
+    release_candidates = []
+    for _, row in owner_points.sort_values("Total Points").iterrows():
+        team = row["Team"]
+        player_name = row["Player Name"]
+        if team_counts[team] > 1:
+            release_candidates.append(row)
+            team_counts[team] -= 1  # simulate removing this player
+        if len(release_candidates) == 2:
+            break
+
+    # If less than 2 can be released (e.g. small team), skip
+    if len(release_candidates) < 2:
+        release_names = [row["Player Name"] for row in release_candidates]
+        value_of_release = 0
+        updated_budget = budget_data.get(owner, 0)
+        trade_suggestions.append({
+            "Owner": owner,
+            "Budget Before": budget_data.get(owner, 0),
+            "Released Players": ", ".join(release_names),
+            "Value of Released": 0,
+            "Updated Budget": updated_budget,
+            "Lowest Scoring Teams": "Not enough eligible releases",
+            "Suggested Picks": "None"
+        })
+        continue
+
+    to_release_df = pd.DataFrame(release_candidates)
+    release_names = to_release_df["Player Name"].tolist()
+
+    # --- Adjust value return based on 200-value rule ---
+    adjusted_values = []
+    for _, row in to_release_df.iterrows():
+        value = row["Player Value"]
+        adjusted = value * 0.5 if value > 200 else value
+        adjusted_values.append(adjusted)
+
+    value_of_release = sum(adjusted_values)
+
+    # --- Update budget with adjusted value ---
     initial_budget = budget_data.get(owner, 0)
-    updated_budget = initial_budget + release_value
+    updated_budget = initial_budget + value_of_release
 
     # --- Identify 2 lowest scoring teams for this owner ---
     team_scores = owner_points.groupby("Team")["Total Points"].sum().sort_values()
@@ -435,14 +472,15 @@ for owner in points_df["Owner"].unique():
         "Owner": owner,
         "Budget Before": initial_budget,
         "Released Players": ", ".join(release_names),
-        "Value of Released": release_value,
-        "Updated Budget": updated_budget,
+        "Value of Released": round(value_of_release, 2),
+        "Updated Budget": round(updated_budget, 2),
         "Lowest Scoring Teams": ", ".join(low_teams),
         "Suggested Picks": ", ".join(picks) if picks else "None"
     })
 
 trade_df = pd.DataFrame(trade_suggestions)
 st.dataframe(trade_df, use_container_width=True)
+
 
 # --- Line Chart Plot ---
 st.subheader("📈 Owners Performance Over Time")
