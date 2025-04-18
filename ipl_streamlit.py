@@ -71,12 +71,16 @@ upcoming_matches = upcoming_matches_df["Match"].tolist()
 
 # Dropdown to select match (pre-select next match if found)
 match_input = st.selectbox("Current/Next Match", options=upcoming_matches_df["Match"].tolist(), index=0)
-
 if match_input:
-    teams_playing = match_input.split(" vs ")
+    # Split the input and strip whitespace
+    teams_playing = [team.strip() for team in match_input.split("vs")]
+    
     if len(teams_playing) == 2:
         team1, team2 = teams_playing
+        # Get unique player names for the selected teams
         match_players = sorted(points_df[points_df["Team"].isin([team1, team2])]["Player Name"].unique())
+        
+        # Create a multiselect for non-playing players
         non_playing_players = st.multiselect(
             f"Select Non-Playing Players from {team1}/{team2}:",
             options=match_players
