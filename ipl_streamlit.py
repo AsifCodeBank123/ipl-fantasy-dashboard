@@ -12,6 +12,10 @@ import plotly.express as px
 st.set_page_config(layout="wide", page_title="HPL Fantasy Dashboard")
 st.header("🏏 :orange[HPL] Fantasy League Performance Dashboard", divider = "orange")
 
+# --- Inputs ---
+n_matches_played = 6
+total_matches = 14
+
 # --- Captain and Vice-Captain selections for each owner ---
 captain_vc_dict = {
     "Mahesh": ("Jos Buttler", "N. Tilak Varma"),
@@ -27,57 +31,7 @@ captain_vc_dict = {
 }
 
 
-# --- Load Match Data ---
-# Match data (schedule) for the IPL season.
-match_data = [
-    ["12-Apr-25", "3:30 PM", "LSG vs GT"],
-    ["12-Apr-25", "7:30 PM", "SRH vs PK"],
-    ["13-Apr-25", "3:30 PM", "RR vs RCB"],
-    ["13-Apr-25", "7:30 PM", "DC vs MI"],
-    ["14-Apr-25", "7:30 PM", "LSG vs CSK"],
-    ["15-Apr-25", "7:30 PM", "KKR vs PK"],
-    ["16-Apr-25", "7:30 PM", "DC vs RR"],
-    ["17-Apr-25", "7:30 PM", "MI vs SRH"],
-    ["18-Apr-25", "7:30 PM", "RCB vs PK"],
-    ["19-Apr-25", "3:30 PM", "GT vs DC"],
-    ["19-Apr-25", "7:30 PM", "LSG vs RR"],
-    ["20-Apr-25", "3:30 PM", "PK vs RCB"],
-    ["20-Apr-25", "7:30 PM", "MI vs CSK"],
-    ["21-Apr-25", "7:30 PM", "KKR vs GT"],
-    ["22-Apr-25", "7:30 PM", "LSG vs DC"],
-    ["23-Apr-25", "7:30 PM", "SRH vs MI"],
-    ["24-Apr-25", "7:30 PM", "RCB vs RR"],
-    ["25-Apr-25", "7:30 PM", "CSK vs SRH"],
-    ["26-Apr-25", "7:30 PM", "KKR vs PK"],
-    ["27-Apr-25", "7:30 PM", "DC vs LSG"],
-    ["28-Apr-25", "7:30 PM", "RR vs GT"],
-    ["29-Apr-25", "7:30 PM", "DC vs RCB"],
-    ["30-Apr-25", "7:30 PM", "DC vs KKR"],
-    ["1-May-25", "7:30 PM", "CSK vs PK"],
-    ["2-May-25", "7:30 PM", "RR vs MI"],
-    ["3-May-25", "7:30 PM", "GT vs SRH"],
-    ["4-May-25", "7:30 PM", "RCB vs CSK"],
-    ["5-May-25", "7:30 PM", "KKR vs RR"],
-    ["6-May-25", "7:30 PM", "PK vs LSG"],
-    ["7-May-25", "7:30 PM", "SRH vs DC"],
-    ["8-May-25", "7:30 PM", "MI vs GT"],
-    ["9-May-25", "7:30 PM", "KKR vs CSK"],
-    ["10-May-25", "7:30 PM", "PK vs DC"],
-    ["11-May-25", "7:30 PM", "LSG vs RCB"],
-    ["12-May-25", "7:30 PM", "SRH vs KKR"],
-    ["13-May-25", "7:30 PM", "PK vs MI"],
-    ["14-May-25", "7:30 PM", "DC vs GT"],
-    ["15-May-25", "7:30 PM", "CSK vs RR"],
-    ["16-May-25", "7:30 PM", "RCB vs SRH"],
-    ["17-May-25", "7:30 PM", "GT vs LSG"],
-    ["18-May-25", "3:30 PM", "MI vs DC"],
-    ["18-May-25", "7:30 PM", "RR vs PK"],
-    ["19-May-25", "7:30 PM", "RCB vs KKR"],
-    ["20-May-25", "7:30 PM", "GT vs CSK"],
-    ["21-May-25", "7:30 PM", "LSG vs SRH"],
-    # more matches can be added
-]
-
+match_data = pd.read_csv("match_schedule.csv")
 # Convert match data into a DataFrame for easier manipulation
 match_df = pd.DataFrame(match_data, columns=["Date", "Time", "Match"])
 
@@ -88,29 +42,16 @@ points_df = pd.read_csv("points.csv")
 # Optional: wrap column headers or shorten names in your DataFrame
 points_df.columns = [col if len(col) < 15 else col[:12] + "..." for col in points_df.columns]
 
-
-# Ensure the "CVC Bonus Points" column exists and is of float type
-if "CVC Bonus Points" not in points_df.columns:
-    points_df["CVC Bonus Points"] = 0.0
-else:
-    points_df["CVC Bonus Points"] = points_df["CVC Bonus Points"].astype(float)
-
-# Apply captain and vice-captain bonus points
-for owner, (captain, vice_captain) in captain_vc_dict.items():
-    for role, multiplier in zip([captain, vice_captain], [1.0, 1.0]):  # set back to 2.0, 1.5 when ready
-        mask = (points_df["Owner"] == owner) & (points_df["Player Name"] == role)
-        points_df.loc[mask, "CVC Bonus Points"] = points_df.loc[mask, "Total Points"] * multiplier
-
-
 # Define IST timezone
 ist = pytz.timezone("Asia/Kolkata")
 # --- Get current time ---
 current_time = datetime.now(ist)
 
 # Convert match date & time to timezone-aware datetime
-match_df["DateTime"] = pd.to_datetime(
-    match_df["Date"] + " " + match_df["Time"], format="%d-%b-%y %I:%M %p"
-).dt.tz_localize("Asia/Kolkata")
+# Combine Date and Time into a single DateTime column
+match_df['DateTime'] = match_df['Date'] + ' ' + match_df['Time']
+# Convert to datetime
+match_df['DateTime'] = pd.to_datetime(match_df['DateTime'], format='%d-%b-%y %I:%M %p').dt.tz_localize("Asia/Kolkata")
 
 # Filter upcoming matches
 upcoming_matches_df = match_df[match_df["DateTime"] > current_time].copy()
@@ -123,9 +64,7 @@ if not upcoming_matches_df.empty:
 else:
     next_match = "No upcoming match"
 
-# --- Inputs ---
-n_matches_played = 6
-total_matches = 14
+
 
 # --- Dropdown of upcoming matches ---
 upcoming_matches = upcoming_matches_df["Match"].tolist()
@@ -147,6 +86,18 @@ if match_input:
 else:
     st.error("No match selected.")
 
+
+# Ensure the "CVC Bonus Points" column exists and is of float type
+if "CVC Bonus Points" not in points_df.columns:
+    points_df["CVC Bonus Points"] = 0.0
+else:
+    points_df["CVC Bonus Points"] = points_df["CVC Bonus Points"].astype(float)
+
+# Apply captain and vice-captain bonus points
+for owner, (captain, vice_captain) in captain_vc_dict.items():
+    for role, multiplier in zip([captain, vice_captain], [1.0, 1.0]):  # set back to 2.0, 1.5 when ready
+        mask = (points_df["Owner"] == owner) & (points_df["Player Name"] == role)
+        points_df.loc[mask, "CVC Bonus Points"] = points_df.loc[mask, "Total Points"] * multiplier
 
 
 # --- Calculate Update Differences ---
@@ -240,8 +191,8 @@ if section == "Owner Rankings: Current vs Predicted":
             first_rank_deltas.append(format_delta(last_scores[0] - score, 1))
 
     # Insert delta columns after Last Score
-    merged_df.insert(3, "Next Rank Delta", next_rank_deltas)
-    merged_df.insert(4, "1st Rank Delta", first_rank_deltas)
+    merged_df.insert(2, "Next Rank Delta", next_rank_deltas)
+    merged_df.insert(3, "1st Rank Delta", first_rank_deltas)
 
     # Winning Chances
     merged_df["Projected Final Score"] = merged_df["Current Score"] + \
@@ -254,8 +205,14 @@ if section == "Owner Rankings: Current vs Predicted":
     merged_df.insert(0, "Rank", merged_df["Current Score"].rank(method='first', ascending=False).astype(int))
     merged_df = merged_df.sort_values(by="Rank").reset_index(drop=True)
 
+    # Center-align the DataFrame
+    st.markdown(
+        f"<style>div.stDataFrame {{text-align: center;}}</style>",
+        unsafe_allow_html=True
+    )
+
     # Display the prediction table
-    st.dataframe(merged_df, use_container_width=True)
+    st.dataframe(merged_df, use_container_width=True, hide_index=True)
 
 
     # --- Owner of the Match Highlight ---
@@ -300,18 +257,58 @@ if section == "Owner Rankings: Current vs Predicted":
 
         return msg.format(owner=owner, points=gained_points)
 
-    with st.expander("📋 Last Match Summary"):
-        for index, row in df_diff.iterrows():
-            owner = row["Owners"]
-            gained_points = int(row[latest_col])
-            st.write(get_message(gained_points, owner))
+    # Generate messages dynamically from df_diff
+    # Generate messages dynamically from df_diff
+    ticker_messages = []
+    for index, row in df_diff.iterrows():
+        owner = row["Owners"]
+        gained_points = int(row[latest_col])
+        ticker_messages.append(get_message(gained_points, owner))
+
+    ticker_text = " <span style='color: #ff9800;'>|</span> ".join(ticker_messages)
+
+
+    ticker_html = f"""
+    <div id="ticker-container" style="
+        width: 100%;
+        overflow: hidden;
+        background-color: #111;
+        padding: 10px 0;
+        border-radius: 8px;
+        border: 1px solid #444;
+    ">
+        <div id="scrolling-text" style="
+            display: inline-block;
+            white-space: nowrap;
+            animation: scroll-left 40s linear infinite;
+        ">
+            <span style="font-size: 18px; font-weight: 500; color: #f8f8f2;">
+                {ticker_text}    {ticker_text}
+            </span>
+        </div>
+    </div>
+
+    <style>
+    @keyframes scroll-left {{
+        0% {{
+            transform: translateX(0%);
+        }}
+        100% {{
+            transform: translateX(-50%);
+        }}
+    }}
+    </style>
+    """
+    st.markdown(ticker_html, unsafe_allow_html=True)
+
+
 
 elif section == "Player Impact - Next Match Focus":
     # --- Player Impact Table ---
     st.subheader("🧠 Player Impact - Next Match Focus",divider="orange")
     impact_df = points_df[(points_df["Team"].isin(teams_playing)) & (~points_df["Player Name"].isin(non_playing_players))]
     top_players = impact_df.sort_values(by="Total Points", ascending=False).head(10)
-    st.dataframe(top_players[["Player Name", "Team", "Owner", "Total Points"]], use_container_width=True)
+    st.dataframe(top_players[["Player Name", "Team", "Owner", "Total Points"]], use_container_width=True,hide_index=True)
 
     
 elif section == "Captain/Vice-Captain Impact Analysis":
@@ -505,7 +502,7 @@ elif section == "Players to Watch Out for in Mini Auction":
         })
 
     trade_df = pd.DataFrame(trade_suggestions)
-    st.dataframe(trade_df, use_container_width=True)
+    st.dataframe(trade_df, use_container_width=True,hide_index=True)
 
 elif section == "Owner Insights & Breakdown":
     # --- Owner Insights Block ---
@@ -546,7 +543,7 @@ elif section == "Owner Insights & Breakdown":
 
     # Player table
     st.markdown(f"#### 📊 Detailed Player Stats for {selected_owner}")
-    st.dataframe(owner_display_df, use_container_width=True)
+    st.dataframe(owner_display_df, use_container_width=True,hide_index=True)
 
     # Top & Bottom Performer
     top_player = owner_df.sort_values("Total Points", ascending=False).iloc[0]
