@@ -170,10 +170,7 @@ if section == "Owner Rankings: Current vs Predicted":
                 "Change (%)", "Players in Next Match", "Top 4 Appearances"
             ])
 
-            # --- Rank Deltas ---
-            merged_df = merged_df.sort_values("Current Score", ascending=False).reset_index(drop=True)
-           # merged_df.insert(0, "Rank", merged_df["Current Score"].rank(method='first', ascending=False).astype(int))
-
+           
             # --- Winning Chances ---
             # --- Calculate Projected Final Scores and Winning Chances ---
             merged_df["Projected Final Score"] = merged_df["Current Score"] + \
@@ -184,7 +181,8 @@ if section == "Owner Rankings: Current vs Predicted":
             # --- Clean up and rank ---
             merged_df.drop(columns=["Projected Final Score"], inplace=True)
             merged_df.insert(0, "Rank", merged_df["Winning Chances (%)"].rank(method='first', ascending=False).astype(int))
-            merged_df = merged_df.sort_values(by="Rank").reset_index(drop=True)
+            merged_df = merged_df.sort_values(by="Current Score", ascending=False).reset_index(drop=True)
+
 
             # --- Arrow Icons in Owners Column ---
             latest_col, prev_col = df.columns[-1], df.columns[-2]
