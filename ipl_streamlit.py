@@ -172,14 +172,19 @@ if section == "Owner Rankings: Current vs Predicted":
 
             # --- Rank Deltas ---
             merged_df = merged_df.sort_values("Current Score", ascending=False).reset_index(drop=True)
-            merged_df.insert(0, "Rank", merged_df["Current Score"].rank(method='first', ascending=False).astype(int))
+           # merged_df.insert(0, "Rank", merged_df["Current Score"].rank(method='first', ascending=False).astype(int))
 
             # --- Winning Chances ---
+            # --- Calculate Projected Final Scores and Winning Chances ---
             merged_df["Projected Final Score"] = merged_df["Current Score"] + \
                 (merged_df["Predicted Next Score"] - merged_df["Current Score"]) * (total_matches - n_matches_played)
             total_projected = merged_df["Projected Final Score"].sum()
             merged_df["Winning Chances (%)"] = (merged_df["Projected Final Score"] / total_projected * 100).round(1)
+
+            # --- Clean up and rank ---
             merged_df.drop(columns=["Projected Final Score"], inplace=True)
+            merged_df.insert(0, "Rank", merged_df["Winning Chances (%)"].rank(method='first', ascending=False).astype(int))
+            merged_df = merged_df.sort_values(by="Rank").reset_index(drop=True)
 
             # --- Arrow Icons in Owners Column ---
             latest_col, prev_col = df.columns[-1], df.columns[-2]
@@ -188,99 +193,54 @@ if section == "Owner Rankings: Current vs Predicted":
             temp_df["Curr Rank"] = temp_df[latest_col].rank(method="first", ascending=False).astype(int)
 
             def rank_change_arrow(row):
-                if row["Curr Rank"] < row["Prev Rank"]:  # Rank has improved
-                    return '<span style="color:green; font-size:20px;">&#x2B06;</span>'  # Green upward arrow with increased size
-                elif row["Curr Rank"] > row["Prev Rank"]:  # Rank has declined
-                    return '<span style="color:red; font-size:20px;">&#x2B07;</span>'  # Red downward arrow with increased size
-                else:  # No change in rank
-                    return '<span style="color:gray; font-size:10px;">⏺️</span>'  # Circle with increased size
-
+                if row["Curr Rank"] < row["Prev Rank"]:
+                    return '🢁'
+                elif row["Curr Rank"] > row["Prev Rank"]:
+                    return '🔻'
+                else:
+                    return '➡'
 
             temp_df["Styled Arrow"] = temp_df.apply(rank_change_arrow, axis=1)
             arrow_map = dict(zip(temp_df["Owners"], temp_df["Styled Arrow"]))
             merged_df["Owners"] = merged_df["Owners"].apply(lambda x: f'{x} {arrow_map.get(x, "")}')
 
-            def render_html_table(df):
-                table_html = '''
+            # Custom CSS for styling the DataFrame
+            st.markdown(
+                """
                 <style>
-                    table {
-                        width: 100%; /* Full width for responsiveness */
-                        border-collapse: collapse;
-                        font-size: 14px; /* Default font size */
-                    }
-
-                    th, td {
-                        padding: 10px;
-                        border: 1px solid #ccc;
-                        text-align: center; /* Center all text */
-                    }
-
-                    /* Header styles */
-                    th {
-                        background-color: #007BFF; /* Blue header color */
-                        color: #FFFFFF; /* White text for contrast */
-                    }
-
-                    /* Row styles */
-                    tr:nth-child(even) {
-                        background-color: #f9f9f9; /* Light gray for even rows */
-                    }
-
-                    tr:nth-child(odd) {
-                        background-color: #ffffff; /* White for odd rows */
-                    }
-
-                    tr:hover {
-                        background-color: #e6f7ff; /* Light blue on hover */
-                    }
-
-                    @media (prefers-color-scheme: dark) {
-                        table {
-                            background-color: #333; /* Dark background for the table */
-                            color: #fff; /* White text for contrast */
-                        }
-
-                        th {
-                            background-color: #2f3e46; 
-                            color: white;
-                            
-                        }
-
-                        tr:nth-child(even) {
-                            background-color: #444; /* Darker gray for even rows */
-                        }
-
-                        tr:nth-child(odd) {
-                            background-color: #555; /* Slightly lighter gray for odd rows */
-                        }
-
-                        tr:hover {
-                            background-color: #666; /* Highlight on hover in dark mode */
-                        }
-                    }
+                .dataframe {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                .dataframe th, .dataframe td {
+                    padding: 10px;
+                    text-align: left;
+                    border: 1px solid #ddd;
+                }
+                .dataframe th {
+                    background-color: #4CAF50; /* Green for header */
+                    color: white;
+                }
+                .dataframe tr:nth-child(even) {
+                    background-color: #f2f2f2; /* Light gray for even rows */
+                }
+                .dataframe tr:hover {
+                    background-color: #ddd; /* Gray on hover */
+                }
+                .dataframe td {
+                    color: #333; /* Dark text for readability */
+                }
                 </style>
-                <table>
-                    <thead>
-                        <tr>
-                '''
+                """,
+                unsafe_allow_html=True
+            )
 
-                for col in df.columns:
-                    table_html += f'<th>{col}</th>'
-                table_html += '</tr></thead><tbody>'
+            # --- Display Prediction Table ---
+            st.dataframe(merged_df, use_container_width=True, hide_index=True)
 
-                for _, row in df.iterrows():
-                    table_html += '<tr>'
-                    for col in df.columns:
-                        table_html += f'<td>{row[col]}</td>'
-                    table_html += '</tr>'
-
-                table_html += '</tbody></table>'
-                return table_html
-
-                
-            # --- Display in Streamlit ---
-            st.markdown(render_html_table(merged_df), unsafe_allow_html=True)
-
+            # --- Add footer ---
+            st.markdown("---")
+            st.caption("Made with ❤️ using Streamlit")
 
 
     # --- Owner of the Match Highlight ---
