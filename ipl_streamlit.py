@@ -171,9 +171,16 @@ if section == "Owner Rankings: Current vs Predicted":
             ])
 
 
+            # --- Rank Deltas ---
+            merged_df.sort_values("Current Score", ascending=False, inplace=True)
+            merged_df["Rank"] = merged_df["Current Score"].rank(method="first", ascending=False).astype(int)
+            merged_df.reset_index(drop=True, inplace=True)
+
             scores = merged_df["Current Score"].values
             merged_df.insert(3, "Next Rank Delta", [""] + [round(scores[i-1] - scores[i], 1) for i in range(1, len(scores))])
-            merged_df.insert(4, "1st Rank Delta", [round(scores[0] - s, 1) if i != 0 else "" for i, s in enumerate(scores)])
+            merged_df.insert(4, "1st Rank Delta", [round(scores[0] - s, 1) if i != 0 else "" for i, s in enumerate(scores)])scores = merged_df["Current Score"].values
+
+        
             
             # --- Winning Chances ---
             # --- Calculate Projected Final Scores and Winning Chances ---
