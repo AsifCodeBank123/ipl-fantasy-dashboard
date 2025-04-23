@@ -19,21 +19,21 @@ st.set_page_config(layout="wide", page_title="HPL Fantasy Dashboard")
 st.header("🏏 :orange[HPL] Fantasy League Performance Dashboard", divider = "orange")
 
 # --- Inputs ---
-n_matches_played = 7
+n_matches_played = 8
 total_matches = 14
 
 # --- Captain and Vice-Captain selections for each owner ---
 captain_vc_dict = {
-    "Mahesh": ("Jos Buttler", "Sai Sudarsan"),
-    "Asif": ("Kuldeep Yadav", "Pat Cummins"),
-    "Pritesh": ("Abhishek Sharma", "Yashasvi Jaiswal"),
-    "Pritam": ("Suryakumar Yadav", "Virat Kohli"),
-    "Lalit": ("Shreyas Iyer", "Shubman Gill"),
-    "Umesh": ("Travis Head", "Rajat Patidar"),
-    "Sanskar": ("Hardik Pandya", "Nicholas Pooran"),
-    "Johnson": ("Sunil Naraine", "Sanju Samson"),
-    "Somansh": ("Phil Salt","Rashid Khan"),
-    "Wilfred": ("Rachin Ravindra", "KL Rahul")
+    "Mahesh": ("Jos Buttler[C]", "Sai Sudarsan[VC]"),
+    "Asif": ("Kuldeep Yadav[C]", "Pat Cummins[VC]"),
+    "Pritesh": ("Abhishek Sharma[C]", "Yashasvi Jaiswal[VC]"),
+    "Pritam": ("Suryakumar Yadav[C]", "Virat Kohli[VC]"),
+    "Lalit": ("Shreyas Iyer[C]", "Shubman Gill[VC]"),
+    "Umesh": ("Travis Head[C]", "Rajat Patidar[VC]"),
+    "Sanskar": ("Hardik Pandya[C]", "Nicholas Pooran[VC]"),
+    "Johnson": ("Sunil Naraine[C]", "Mitchell Starc[VC]"),
+    "Somansh": ("Phil Salt[C]","Rashid Khan[VC]"),
+    "Wilfred": ("KL Rahul[C]","Rachin Ravindra[VC]", )
 }
 
 
@@ -104,7 +104,7 @@ with st.sidebar.expander("📂 Select Section", expanded=True):
     section=st.radio("",[
         "Owner Rankings: Current vs Predicted",
         "Player Impact - Next Match Focus",
-        "Captain/Vice-Captain Impact Analysis",
+        "Team of the Tournament",
         "Owner Insights & Breakdown",
         "Owners Performance"
     ])
@@ -313,25 +313,60 @@ elif section == "Player Impact - Next Match Focus":
         st.error("No match selected.")
 
 
-elif section == "Captain/Vice-Captain Impact Analysis":
-    st.subheader("💥 Captain/Vice-Captain Impact Analysis", divider="orange")
+elif section == "Team of the Tournament":
 
-    summary = points_df.groupby("Owner").agg(
-        Team_Total_Points=("Total Points", "sum"),
-        CVC_Bonus_Points=("CVC Bonus Points", "sum")
-    ).reset_index()
+    st.markdown("## 🏆 Team of the Tournament")
 
-    summary["CVC_Impact_%"] = (summary["CVC_Bonus_Points"] / summary["Team_Total_Points"]) * 100
-    summary = summary.sort_values("CVC_Bonus_Points", ascending=False)
+    # Exclude Out/Released players
+    valid_players_df = points_df[
+        ~points_df["Player Name"].str.contains(r"\(O\)|\(R\)|\(RE\)", na=False)
+    ]
 
-    st.dataframe(
-        summary.style.format({
-            "CVC_Impact_%": "{:.0f}%", 
-            "CVC_Bonus_Points": "{:.0f}", 
-            "Team_Total_Points": "{:.0f}"
-        }),
-        use_container_width=True
-    )
+    # Get top 11 scorers
+    top_players = valid_players_df.sort_values(by="Total Points", ascending=False).drop_duplicates(subset=["Player Name"]).head(11).reset_index(drop=True)
+
+    # Assign captain and vice-captain
+    captain = top_players.loc[0, "Player Name"]
+    vice_captain = top_players.loc[1, "Player Name"]
+
+    # Layout for visual structure
+    cols = st.columns(3)
+    positions = ['Forward', 'Midfielder', 'Defender']  # Visual layout only
+
+    for i, player in top_players.iterrows():
+        col = cols[i % 3]
+        with col:
+            st.markdown(f"### {player['Player Name']}")
+            st.markdown(f"**Team:** {player['Team']}")
+            st.markdown(f"**Points:** {player['Total Points']}")
+            
+            # Highlight captain and VC
+            if player["Player Name"] == captain:
+                st.markdown("🧢 **Captain**")
+            elif player["Player Name"] == vice_captain:
+                st.markdown("⭐️ **Vice-Captain**")
+
+            st.markdown("---")
+
+# elif section == "Captain/Vice-Captain Impact Analysis":
+#     st.subheader("💥 Captain/Vice-Captain Impact Analysis", divider="orange")
+
+#     summary = points_df.groupby("Owner").agg(
+#         Team_Total_Points=("Total Points", "sum"),
+#         CVC_Bonus_Points=("CVC Bonus Points", "sum")
+#     ).reset_index()
+
+#     summary["CVC_Impact_%"] = (summary["CVC_Bonus_Points"] / summary["Team_Total_Points"]) * 100
+#     summary = summary.sort_values("CVC_Bonus_Points", ascending=False)
+
+#     st.dataframe(
+#         summary.style.format({
+#             "CVC_Impact_%": "{:.0f}%", 
+#             "CVC_Bonus_Points": "{:.0f}", 
+#             "Team_Total_Points": "{:.0f}"
+#         }),
+#         use_container_width=True
+#     )
 
 # elif section == "Best C/VC Suggestion":
 #     st.subheader("🔮 What-If Best C/VC Optimization",divider="orange")
