@@ -170,8 +170,6 @@ if section == "Owner Rankings: Current vs Predicted":
                 "Change (%)", "Players in Next Match", "Top 4 Appearances"
             ])
 
-        
-            
             # --- Winning Chances ---
             # --- Calculate Projected Final Scores and Winning Chances ---
             merged_df["Projected Final Score"] = merged_df["Current Score"] + \
@@ -185,9 +183,19 @@ if section == "Owner Rankings: Current vs Predicted":
             merged_df = merged_df.sort_values(by="Current Score", ascending=False).reset_index(drop=True)
 
             scores = merged_df["Current Score"].values
-            merged_df.insert(3, "Next Rank Delta", [""] + [round(scores[i-1] - scores[i], 1) for i in range(1, len(scores))])
-            merged_df.insert(4, "1st Rank Delta", [round(scores[0] - s, 1) if i != 0 else "" for i, s in enumerate(scores)])scores = merged_df["Current Score"].values
+            def format_delta(val):
+                return "" if val == "" else int(val) if val == int(val) else round(val, 1)
 
+            # --- Calculate deltas ---
+            next_deltas = [""] + [format_delta(scores[i-1] - scores[i]) for i in range(1, len(scores))]
+            first_deltas = [format_delta(scores[0] - s) if i != 0 else "" for i, s in enumerate(scores)]
+
+            # --- Insert into dataframe ---
+            merged_df.insert(3, "Next Rank Delta", next_deltas)
+            merged_df.insert(4, "1st Rank Delta", first_deltas)
+
+            # merged_df.insert(3, "Next Rank Delta", [""] + [round(scores[i-1] - scores[i], 1) for i in range(1, len(scores))])
+            # merged_df.insert(4, "1st Rank Delta", [round(scores[0] - s, 1) if i != 0 else "" for i, s in enumerate(scores)])
 
             # --- Arrow Icons in Owners Column ---
             latest_col, prev_col = df.columns[-1], df.columns[-2]
