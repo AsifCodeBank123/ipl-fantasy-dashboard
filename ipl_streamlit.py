@@ -170,7 +170,11 @@ if section == "Owner Rankings: Current vs Predicted":
                 "Change (%)", "Players in Next Match", "Top 4 Appearances"
             ])
 
-           
+
+            scores = merged_df["Current Score"].values
+            merged_df.insert(3, "Next Rank Delta", [""] + [round(scores[i-1] - scores[i], 1) for i in range(1, len(scores))])
+            merged_df.insert(4, "1st Rank Delta", [round(scores[0] - s, 1) if i != 0 else "" for i, s in enumerate(scores)])
+            
             # --- Winning Chances ---
             # --- Calculate Projected Final Scores and Winning Chances ---
             merged_df["Projected Final Score"] = merged_df["Current Score"] + \
