@@ -192,7 +192,7 @@ if section == "Owner Rankings: Current vs Predicted":
 
             def rank_change_arrow(row):
                 if row["Curr Rank"] < row["Prev Rank"]:
-                    return '🢁'
+                    return '🔼'
                 elif row["Curr Rank"] > row["Prev Rank"]:
                     return '🔻'
                 else:
