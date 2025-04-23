@@ -192,7 +192,7 @@ if section == "Owner Rankings: Current vs Predicted":
 
             def rank_change_arrow(row):
                 if row["Curr Rank"] < row["Prev Rank"]:
-                    return '🔼'
+                    return '🚀'
                 elif row["Curr Rank"] > row["Prev Rank"]:
                     return '🔻'
                 else:
@@ -238,8 +238,6 @@ if section == "Owner Rankings: Current vs Predicted":
 
             # --- Add footer ---
             st.markdown("---")
-            st.caption("Made with ❤️ using Streamlit")
-
 
     # --- Owner of the Match Highlight ---
     st.subheader("🏅 Owner of the Match",divider="orange")
