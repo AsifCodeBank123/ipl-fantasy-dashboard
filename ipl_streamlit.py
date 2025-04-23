@@ -170,16 +170,6 @@ if section == "Owner Rankings: Current vs Predicted":
                 "Change (%)", "Players in Next Match", "Top 4 Appearances"
             ])
 
-
-            # --- Rank Deltas ---
-            merged_df.sort_values("Current Score", ascending=False, inplace=True)
-            merged_df["Rank"] = merged_df["Current Score"].rank(method="first", ascending=False).astype(int)
-            merged_df.reset_index(drop=True, inplace=True)
-
-            scores = merged_df["Current Score"].values
-            merged_df.insert(3, "Next Rank Delta", [""] + [round(scores[i-1] - scores[i], 1) for i in range(1, len(scores))])
-            merged_df.insert(4, "1st Rank Delta", [round(scores[0] - s, 1) if i != 0 else "" for i, s in enumerate(scores)])scores = merged_df["Current Score"].values
-
         
             
             # --- Winning Chances ---
@@ -193,6 +183,10 @@ if section == "Owner Rankings: Current vs Predicted":
             merged_df.drop(columns=["Projected Final Score"], inplace=True)
             merged_df.insert(0, "Rank", merged_df["Winning Chances (%)"].rank(method='first', ascending=False).astype(int))
             merged_df = merged_df.sort_values(by="Current Score", ascending=False).reset_index(drop=True)
+
+            scores = merged_df["Current Score"].values
+            merged_df.insert(3, "Next Rank Delta", [""] + [round(scores[i-1] - scores[i], 1) for i in range(1, len(scores))])
+            merged_df.insert(4, "1st Rank Delta", [round(scores[0] - s, 1) if i != 0 else "" for i, s in enumerate(scores)])scores = merged_df["Current Score"].values
 
 
             # --- Arrow Icons in Owners Column ---
