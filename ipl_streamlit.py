@@ -395,13 +395,13 @@ elif section == "Player Impact - Next Match Focus":
                 "Owner", "Impact", "Player Name", "Team", "Projected Points"
             ]].sort_values(by="Owner").rename(columns={
                 "Owner": "Team Owner",
-                "Impact": "Potential Impact",
+                "Impact": "Impact",
                 "Player Name": "Player",
-                "Team": "Playing Team",
-                "Projected Points": "Projected Next Match"
+                "Team": "Team",
+                "Projected Points": "Projection"
             })
 
-            st.markdown("### <span style='font-size: 1.1em;'>📊 Player Projections for the Upcoming Match</span>", unsafe_allow_html=True)
+            st.markdown("### <span style='font-size: 0.8em;'>📊 Player Projections for the Upcoming Match</span>", unsafe_allow_html=True)
 
             unique_owners = sorted(display_df["Team Owner"].unique())
             num_owners = len(unique_owners)
@@ -411,7 +411,7 @@ elif section == "Player Impact - Next Match Focus":
                     for owner in unique_owners:
                         owner_df = display_df[display_df["Team Owner"] == owner].drop(columns=["Team Owner"])
                         st.markdown(f"#### <span style='font-size: 1em;'>Team Owner: {owner}</span>", unsafe_allow_html=True)
-                        st.dataframe(owner_df.style.set_properties(**{'font-size': '0.7em'}).format(subset=['Projected Next Match'], formatter="{:.1f}"), use_container_width=True, hide_index=True)
+                        st.dataframe(owner_df.style.set_properties(**{'font-size': '0.7em'}).format(subset=['Projection'], formatter="{:.1f}"), use_container_width=True, hide_index=True)
                         st.markdown("<hr style='margin: 0.8rem 0;'/>", unsafe_allow_html=True)
                 else:
                     col1, col2 = st.columns(2)
@@ -421,14 +421,14 @@ elif section == "Player Impact - Next Match Focus":
                         for owner in owner_groups[0]:
                             owner_df = display_df[display_df["Team Owner"] == owner].drop(columns=["Team Owner"])
                             st.markdown(f"#### <span style='font-size: 1em;'>Team Owner: {owner}</span>", unsafe_allow_html=True)
-                            st.dataframe(owner_df.style.set_properties(**{'font-size': '0.7em'}).format(subset=['Projected Next Match'], formatter="{:.1f}"), use_container_width=True, hide_index=True)
+                            st.dataframe(owner_df.style.set_properties(**{'font-size': '0.7em'}).format(subset=['Projection'], formatter="{:.1f}"), use_container_width=True, hide_index=True)
                             st.markdown("<hr style='margin: 0.8rem 0;'/>", unsafe_allow_html=True)
 
                     with col2:
                         for owner in owner_groups[1]:
                             owner_df = display_df[display_df["Team Owner"] == owner].drop(columns=["Team Owner"])
                             st.markdown(f"#### <span style='font-size: 1em;'>Team Owner: {owner}</span>", unsafe_allow_html=True)
-                            st.dataframe(owner_df.style.set_properties(**{'font-size': '0.7em'}).format(subset=['Projected Next Match'], formatter="{:.1f}"), use_container_width=True, hide_index=True)
+                            st.dataframe(owner_df.style.set_properties(**{'font-size': '0.7em'}).format(subset=['Projection'], formatter="{:.1f}"), use_container_width=True, hide_index=True)
                             st.markdown("<hr style='margin: 0.8rem 0;'/>", unsafe_allow_html=True)
             else:
                 st.info("No player data available for the selected match.")
