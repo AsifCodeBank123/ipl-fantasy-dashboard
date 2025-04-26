@@ -60,29 +60,26 @@ current_time = datetime.now(ist)
 match_df['DateTime'] = match_df['Date'] + ' ' + match_df['Time']
 match_df['DateTime'] = pd.to_datetime(match_df['DateTime'], format='%d-%b-%y %I:%M %p').dt.tz_localize("Asia/Kolkata")
 
-# Add match start buffer (e.g., consider match starting 30 mins earlier)
-match_df["MatchStartWindow"] = match_df["DateTime"] - timedelta(minutes=30)
-# Add match end buffer (e.g., match lasts 4 hours)
-match_df["MatchEndWindow"] = match_df["DateTime"] + timedelta(hours=4)
+# --- Helper function to get available matches ---
+def get_available_matches(match_df, current_time):
+    match_df = match_df.copy()
+    match_df["MatchStartWindow"] = match_df["DateTime"] - timedelta(minutes=30)
+    match_df["MatchEndWindow"] = match_df["DateTime"] + timedelta(hours=4)
 
-# Find the match that is ongoing or the next upcoming
-current_match_row = match_df[(current_time >= match_df["MatchStartWindow"]) & (current_time <= match_df["MatchEndWindow"])]
+    available_matches_df = match_df[
+        ((current_time >= match_df["MatchStartWindow"]) & (current_time <= match_df["MatchEndWindow"])) |
+        (match_df["DateTime"] > current_time)
+    ].copy()
 
-if not current_match_row.empty:
-    # If a match is ongoing
-    next_match = current_match_row.iloc[0]["Match"]
-else:
-    # Otherwise, pick the next match scheduled after current time
-    upcoming_matches_df = match_df[match_df["DateTime"] > current_time].copy()
-    upcoming_matches_df["TimeDiffInHours"] = (upcoming_matches_df["DateTime"] - current_time).dt.total_seconds() / 3600
-    if not upcoming_matches_df.empty:
-        next_match = upcoming_matches_df.iloc[0]["Match"]
-    else:
-        next_match = "No upcoming match"
+    available_matches_df = available_matches_df.sort_values("DateTime")
 
-print(f"Next match is: {next_match}")
+    return available_matches_df
 
+# --- Setup: Get available matches once ---
+current_time = datetime.now(ist)
+available_matches_df = get_available_matches(match_df, current_time)
 
+# You can now use available_matches_df anywhere below without recalculating
 
 # Ensure the "CVC Bonus Points" column exists and is of float type
 if "CVC Bonus Points" not in points_df.columns:
@@ -131,9 +128,12 @@ if section == "Owner Rankings: Current vs Predicted":
     st.subheader("📊🏆 Owner Rankings: Current vs Predicted (Next Match Scores)", divider="orange")
 
     # --- Match Selection ---
-    upcoming_matches = upcoming_matches_df["Match"].tolist()
-    match_input = st.selectbox("Current/Next Match", options=upcoming_matches, index=0)
+
+    available_matches = available_matches_df["Match"].tolist()
+
+    match_input = st.selectbox("Current/Next Match", options=available_matches, index=0)
     st.session_state.match_input = match_input
+
 
     if not match_input:
         st.error("No match selected.")
@@ -357,9 +357,11 @@ if section == "Owner Rankings: Current vs Predicted":
 elif section == "Player Impact - Next Match Focus":
     st.subheader("🧠 Player Impact - Next Match Focus", divider="orange")
 
-    # Match selector
-    match_input = st.selectbox("Current/Next Match", options=upcoming_matches_df["Match"], index=0)
+    available_matches = available_matches_df["Match"].tolist()
+
+    match_input = st.selectbox("Current/Next Match", options=available_matches, index=0)
     st.session_state.match_input = match_input
+
 
     if match_input:
         teams = [t.strip() for t in match_input.split("vs")]
