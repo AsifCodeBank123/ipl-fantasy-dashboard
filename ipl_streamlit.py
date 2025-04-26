@@ -49,26 +49,39 @@ points_df = pd.read_csv("points.csv")
 points_df.columns = [col if len(col) < 15 else col[:12] + "..." for col in points_df.columns]
 
 # Define IST timezone
+import pytz
+from datetime import datetime, timedelta
+import pandas as pd
+
 ist = pytz.timezone("Asia/Kolkata")
-# --- Get current time ---
 current_time = datetime.now(ist)
 
-# Convert match date & time to timezone-aware datetime
 # Combine Date and Time into a single DateTime column
 match_df['DateTime'] = match_df['Date'] + ' ' + match_df['Time']
-# Convert to datetime
 match_df['DateTime'] = pd.to_datetime(match_df['DateTime'], format='%d-%b-%y %I:%M %p').dt.tz_localize("Asia/Kolkata")
 
-# Filter upcoming matches
-upcoming_matches_df = match_df[match_df["DateTime"] > current_time].copy()
-upcoming_matches_df["TimeDiffInHours"] = (upcoming_matches_df["DateTime"] - current_time).dt.total_seconds() / 3600
+# Add match start buffer (e.g., consider match starting 30 mins earlier)
+match_df["MatchStartWindow"] = match_df["DateTime"] - timedelta(minutes=30)
+# Add match end buffer (e.g., match lasts 4 hours)
+match_df["MatchEndWindow"] = match_df["DateTime"] + timedelta(hours=4)
 
-# Select next match
-if not upcoming_matches_df.empty:
-    next_match_row = upcoming_matches_df[upcoming_matches_df["TimeDiffInHours"] <= 4].head(1)
-    next_match = next_match_row["Match"].values[0] if not next_match_row.empty else upcoming_matches_df.iloc[0]["Match"]
+# Find the match that is ongoing or the next upcoming
+current_match_row = match_df[(current_time >= match_df["MatchStartWindow"]) & (current_time <= match_df["MatchEndWindow"])]
+
+if not current_match_row.empty:
+    # If a match is ongoing
+    next_match = current_match_row.iloc[0]["Match"]
 else:
-    next_match = "No upcoming match"
+    # Otherwise, pick the next match scheduled after current time
+    upcoming_matches_df = match_df[match_df["DateTime"] > current_time].copy()
+    upcoming_matches_df["TimeDiffInHours"] = (upcoming_matches_df["DateTime"] - current_time).dt.total_seconds() / 3600
+    if not upcoming_matches_df.empty:
+        next_match = upcoming_matches_df.iloc[0]["Match"]
+    else:
+        next_match = "No upcoming match"
+
+print(f"Next match is: {next_match}")
+
 
 
 # Ensure the "CVC Bonus Points" column exists and is of float type
