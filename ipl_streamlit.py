@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 import plotly.express as px
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 if "match_input" not in st.session_state:
     st.session_state.match_input = None
@@ -341,7 +342,6 @@ if section == "Owner Rankings: Current vs Predicted":
     st.markdown(ticker_html, unsafe_allow_html=True)
 
 
-
 elif section == "Player Impact - Next Match Focus":
     st.subheader("🧠 Player Impact - Next Match Focus", divider="orange")
 
@@ -353,22 +353,71 @@ elif section == "Player Impact - Next Match Focus":
         teams = [t.strip() for t in match_input.split("vs")]
         if len(teams) == 2:
             exclusion_pattern = r"\(O\)|\(RE\)"
-            valid_players = points_df[
+            valid_players_df = points_df[
                 (points_df["Team"].isin(teams)) & 
                 (~points_df["Player Name"].str.contains(exclusion_pattern, regex=True))
-            ]["Player Name"].unique()
+            ].copy()
 
-            non_playing = st.multiselect(f"Select Non-Playing Players from {teams[0]}/{teams[1]}:", sorted(valid_players))
-            impact_df = points_df[
-                (points_df["Team"].isin(teams)) & 
-                (~points_df["Player Name"].isin(non_playing))
-            ]
-            top_players = impact_df.sort_values("Total Points", ascending=False).head(10)
-            st.dataframe(top_players[["Player Name", "Team", "Owner", "Total Points"]], use_container_width=True, hide_index=True)
+            if "Player Name" in valid_players_df.columns:
+                non_playing_options = sorted(valid_players_df["Player Name"].unique())
+            else:
+                non_playing_options = []
+                st.warning("No players found for the selected match.")
+
+            non_playing = st.multiselect(
+                f"Select Non-Playing Players from {teams[0]}/{teams[1]}:",
+                options=non_playing_options
+            )
+
+            # Set playing status
+            valid_players_df["Playing Status"] = valid_players_df["Player Name"].apply(
+                lambda x: "❌ Not Playing" if x in non_playing else "✅ Playing"
+            )
+
+            # Calculate projected points
+            valid_players_df["Projected Points"] = (valid_players_df["Total Points"] / n_matches_played).round(1)
+
+            # Style category for Projected Points
+            def point_color(x):
+                if x > 30:
+                    return "green"
+                elif x > 20:
+                    return "orange"
+                else:
+                    return "gray"
+            valid_players_df["Point Color"] = valid_players_df["Projected Points"].apply(point_color)
+
+            # Final display columns
+            display_df = valid_players_df[[
+                "Player Name", "Owner", "Team", "Total Points", "Projected Points", "Playing Status"
+            ]].sort_values(by="Projected Points", ascending=False)
+
+            from st_aggrid import AgGrid, GridOptionsBuilder
+
+            st.markdown("### 👥 Player Overview for Current Match")
+
+            gb = GridOptionsBuilder.from_dataframe(display_df)
+            gb.configure_default_column(sortable=True, filter=True, resizable=True)
+            gb.configure_grid_options(domLayout='normal', suppressRowClickSelection=True)
+            gb.configure_column("Projected Points", type=["numericColumn"])
+            gb.configure_column("Playing Status")
+
+            gridOptions = gb.build()
+
+            AgGrid(
+                display_df,
+                gridOptions=gridOptions,
+                fit_columns_on_grid_load=True,
+                enable_enterprise_modules=True,
+                theme="balham"
+            )
+
         else:
             st.error("Match format error. Please check the selected match.")
     else:
-        st.error("No match selected.")
+        st.info("No match selected.")
+
+
 
 
 elif section == "Team vs Team Comparison":
@@ -743,22 +792,48 @@ elif section == "Team of the Tournament":
 #     st.dataframe(trade_df, use_container_width=True,hide_index=True)
 
 elif section == "Owner Insights & Breakdown":
+    # --- Overall Insights Block ---
+
+    st.subheader("📊 Overall Insights", divider="orange")
+
+    # Mapping for Playing Role (applying to the entire points_df)
+    role_mapping = {'All': 'Allrounder', 'Bat': 'Batsman', 'Bowl': 'Bowler', 'WK': 'W. Keeper'}
+    points_df.loc[:, 'Playing Role'] = points_df['Playing Role'].map(role_mapping).fillna(points_df['Playing Role'])
+
+    # Stacked bar chart for total points by owner, segmented by playing role
+    st.subheader("Total Points by Owner (Stacked by Playing Role)")
+    fig_bar_stacked_owner = px.bar(
+        points_df,
+        x="Owner",
+        y="Total Points",
+        color="Playing Role",
+        title="Total Points per Owner, Segmented by Playing Role",
+        color_discrete_sequence=px.colors.qualitative.Prism
+    )
+    st.plotly_chart(fig_bar_stacked_owner, use_container_width=True)
+
+    # You can add other overall insights or aggregations here if needed
+
+    # You can add other overall insights or aggregations here if needed
+
+#elif section == "Owner Insights & Breakdown":
     # --- Owner Insights Block ---
 
-    st.subheader("🧠 Owner Insights & Breakdown",divider="orange")
+    st.subheader("🧠 Owner Insights & Breakdown", divider="orange")
 
     selected_owner = st.selectbox("Select an Owner", sorted(points_df["Owner"].unique()))
 
-    owner_df = points_df[points_df["Owner"] == selected_owner]
+    owner_df = points_df[points_df["Owner"] == selected_owner].copy()
 
     # Prepare data
     teamwise_df = owner_df.groupby("Team")["Total Points"].sum().reset_index()
-    owner_display_df = owner_df[["Player Name", "Team", "Total Points", "Player Value"]].sort_values(by="Total Points", ascending=False)
+    owner_role_points = owner_df.groupby("Playing Role")["Total Points"].sum().reset_index()
+    owner_display_df = owner_df[["Player Name", "Team", "Total Points", "Player Value", "Playing Role"]].sort_values(by="Total Points", ascending=False)
 
-    # Layout for side-by-side charts
-    col1, col2 = st.columns(2)
+    # Tabs for charts
+    tab1, tab2, tab3 = st.tabs(["Player Contributions (Pie)", "Team Contributions (Bar)", "Role-based Points (Bar)"])
 
-    with col1:
+    with tab1:
         fig_pie = px.pie(
             owner_df,
             names="Player Name",
@@ -768,8 +843,8 @@ elif section == "Owner Insights & Breakdown":
         )
         st.plotly_chart(fig_pie, use_container_width=True)
 
-    with col2:
-        fig_bar = px.bar(
+    with tab2:
+        fig_bar_team = px.bar(
             teamwise_df,
             x="Team",
             y="Total Points",
@@ -777,11 +852,22 @@ elif section == "Owner Insights & Breakdown":
             color="Total Points",
             color_continuous_scale="Blues"
         )
-        st.plotly_chart(fig_bar, use_container_width=True)
+        st.plotly_chart(fig_bar_team, use_container_width=True)
+
+    with tab3:
+        fig_bar_role = px.bar(
+            owner_role_points,
+            x="Playing Role",
+            y="Total Points",
+            title=f"{selected_owner}'s Points by Playing Role",
+            color="Playing Role",
+            color_discrete_sequence=px.colors.qualitative.Pastel1
+        )
+        st.plotly_chart(fig_bar_role, use_container_width=True)
 
     # Player table
     st.markdown(f"#### 📊 Detailed Player Stats for {selected_owner}")
-    st.dataframe(owner_display_df, use_container_width=True,hide_index=True)
+    st.dataframe(owner_display_df, use_container_width=True, hide_index=True)
 
     # Top & Bottom Performer
     top_player = owner_df.sort_values("Total Points", ascending=False).iloc[0]
