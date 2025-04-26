@@ -4,4 +4,7 @@ numpy
 matplotlib
 scikit-learn
 plotly
+lxml
+requests
+beautifulsoup4==4.4.0
 
