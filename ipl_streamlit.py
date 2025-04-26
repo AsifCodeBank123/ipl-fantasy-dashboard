@@ -7,6 +7,11 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 import plotly.express as px
+# --- Additional Imports for Live Scores ---
+import lxml
+import requests
+from bs4 import BeautifulSoup
+
 
 if "match_input" not in st.session_state:
     st.session_state.match_input = None
@@ -40,6 +45,35 @@ captain_vc_dict = {
 match_data = pd.read_csv("match_schedule.csv")
 # Convert match data into a DataFrame for easier manipulation
 match_df = pd.DataFrame(match_data, columns=["Date", "Time", "Match"])
+
+# Extract team codes from Match column
+scheduled_teams = set()
+for match in match_df["Match"]:
+    teams = match.split(" vs ")
+    scheduled_teams.update(teams)
+
+# --- Function to Fetch Live Matches ---
+def fetch_live_matches():
+    try:
+        link = "https://www.cricbuzz.com/cricket-match/live-scores"
+        source = requests.get(link, timeout=5).text
+        page = BeautifulSoup(source, "lxml")
+
+        main_section = page.find("div", class_="cb-col cb-col-100 cb-bg-white")
+        matches = main_section.find_all("div", class_="cb-scr-wll-chvrn cb-lv-scrs-col")
+
+        live_matches = []
+        for match in matches:
+            match_text = match.text.strip()
+            # Check if any scheduled team is present in the live match text
+            if any(team in match_text for team in scheduled_teams):
+                live_matches.append(match_text)
+
+        return live_matches
+
+    except Exception as e:
+        return [f"⚠️ Failed to load live matches: {str(e)}"]
+    
 
 # --- Load Data ---
 df = pd.read_csv("owners_performance_updates.csv")
@@ -124,6 +158,44 @@ with st.sidebar.expander("📂 Select Section", expanded=True):
     ])
 
 
+def format_live_match(match_text):
+    result = ""
+    
+    # Split by " - " to separate score and status
+    if " - " in match_text:
+        score_part, status_part = match_text.split(" - ", 1)
+    else:
+        score_part, status_part = match_text, ""
+
+    # Now, split teams and their scores
+    import re
+    teams_scores = re.findall(r'([A-Z]+)([\d/-]+ \(\d+ Ovs\))', score_part)
+
+    for team, score in teams_scores:
+        result += f"🏏 **{team}** - {score}\n"
+
+    if status_part:
+        result += f"\nℹ️ {status_part}"
+
+    return result
+
+# --- Streamlit Display ---
+st.markdown("### 📺 Live Score")
+st.write("")
+
+live_scores = fetch_live_matches()
+
+if live_scores:
+    for match in live_scores:
+        formatted_text = format_live_match(match)
+        st.markdown(formatted_text)  # <-- USE MARKDOWN for line breaks!
+        st.write("")  # Space between matches
+else:
+    st.info("No live matches at the moment.")
+
+st.write("")
+
+
 if section == "Owner Rankings: Current vs Predicted":
     st.subheader("📊🏆 Owner Rankings: Current vs Predicted (Next Match Scores)", divider="orange")
 
@@ -205,7 +277,7 @@ if section == "Owner Rankings: Current vs Predicted":
                 return "" if val == "" else int(val) if val == int(val) else round(val, 1)
 
             # --- Calculate deltas ---
-            next_deltas = [""] + [format_delta(scores[i-1] - scores[i]) for i in range(1, len(scores))]
+            next_deltas = [""] + [str(format_delta(scores[i-1] - scores[i])) for i in range(1, len(scores))]
             first_deltas = [format_delta(scores[0] - s) if i != 0 else "" for i, s in enumerate(scores)]
 
             # --- Insert into dataframe ---
