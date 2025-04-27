@@ -116,7 +116,7 @@ match_df['DateTime'] = pd.to_datetime(match_df['DateTime'], format='%d-%b-%y %I:
 def get_available_matches(match_df, current_time):
     match_df = match_df.copy()
     match_df["MatchStartWindow"] = match_df["DateTime"] - timedelta(minutes=30)
-    match_df["MatchEndWindow"] = match_df["DateTime"] + timedelta(hours=4)
+    match_df["MatchEndWindow"] = match_df["DateTime"] + timedelta(hours=3)
 
     available_matches_df = match_df[
         ((current_time >= match_df["MatchStartWindow"]) & (current_time <= match_df["MatchEndWindow"])) |
