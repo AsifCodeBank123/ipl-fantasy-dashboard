@@ -129,8 +129,8 @@ def get_available_matches(match_df):
 
 
 # --- Setup: Get available matches once ---
-current_time = datetime.now(ist)
-available_matches_df = get_available_matches(match_df, current_time)
+#current_time = datetime.now(ist)
+available_matches_df = get_available_matches(match_df)
 
 # You can now use available_matches_df anywhere below without recalculating
 
