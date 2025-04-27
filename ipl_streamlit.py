@@ -113,10 +113,11 @@ match_df['DateTime'] = match_df['Date'] + ' ' + match_df['Time']
 match_df['DateTime'] = pd.to_datetime(match_df['DateTime'], format='%d-%b-%y %I:%M %p').dt.tz_localize("Asia/Kolkata")
 
 # --- Helper function to get available matches ---
-def get_available_matches(match_df, current_time):
+def get_available_matches(match_df):
+    current_time = datetime.now(ist)  # Move this inside
     match_df = match_df.copy()
     match_df["MatchStartWindow"] = match_df["DateTime"] - timedelta(minutes=30)
-    match_df["MatchEndWindow"] = match_df["DateTime"] + timedelta(hours=3)
+    match_df["MatchEndWindow"] = match_df["DateTime"] + timedelta(hours=4)
 
     available_matches_df = match_df[
         ((current_time >= match_df["MatchStartWindow"]) & (current_time <= match_df["MatchEndWindow"])) |
@@ -124,8 +125,8 @@ def get_available_matches(match_df, current_time):
     ].copy()
 
     available_matches_df = available_matches_df.sort_values("DateTime")
-
     return available_matches_df
+
 
 # --- Setup: Get available matches once ---
 current_time = datetime.now(ist)
