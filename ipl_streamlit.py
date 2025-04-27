@@ -52,8 +52,13 @@ for match in match_df["Match"]:
     teams = match.split(" vs ")
     scheduled_teams.update(teams)
 
-# --- Function to Fetch Live Matches ---
+
+# --- Maintain a finished matches set globally ---
+finished_matches = set()
+
 def fetch_live_matches():
+    global finished_matches
+
     try:
         link = "https://www.cricbuzz.com/cricket-match/live-scores"
         source = requests.get(link, timeout=5).text
@@ -63,17 +68,35 @@ def fetch_live_matches():
         matches = main_section.find_all("div", class_="cb-scr-wll-chvrn cb-lv-scrs-col")
 
         live_matches = []
+        current_time = datetime.now(ist)
+
         for match in matches:
             match_text = match.text.strip()
-            # Check if any scheduled team is present in the live match text
-            if any(team in match_text for team in scheduled_teams):
-                live_matches.append(match_text)
+
+            # Attempt to split score and status
+            if " - " in match_text:
+                score_part, status_part = match_text.split(" - ", 1)
+            else:
+                score_part, status_part = match_text, ""
+
+            # Check if match is finished
+            if "won" in status_part.lower():
+                # Mark this match as finished
+                finished_matches.add(score_part.strip())
+                continue  # Skip fetching finished match
+
+            # Check against available matches
+            for scheduled_match in available_matches_df["Match"]:
+                teams = scheduled_match.split(" vs ")
+                if any(team in match_text for team in teams):
+                    if scheduled_match not in finished_matches:
+                        live_matches.append(match_text)
+                    break  # Once matched, no need to check further
 
         return live_matches
 
     except Exception as e:
         return [f"⚠️ Failed to load live matches: {str(e)}"]
-    
 
 # --- Load Data ---
 df = pd.read_csv("owners_performance_updates.csv")
@@ -81,11 +104,6 @@ points_df = pd.read_csv("points.csv")
 
 # Optional: wrap column headers or shorten names in your DataFrame
 points_df.columns = [col if len(col) < 15 else col[:12] + "..." for col in points_df.columns]
-
-# Define IST timezone
-import pytz
-from datetime import datetime, timedelta
-import pandas as pd
 
 ist = pytz.timezone("Asia/Kolkata")
 current_time = datetime.now(ist)
@@ -159,25 +177,41 @@ with st.sidebar.expander("📂 Select Section", expanded=True):
 
 
 def format_live_match(match_text):
-    result = ""
-    
-    # Split by " - " to separate score and status
-    if " - " in match_text:
-        score_part, status_part = match_text.split(" - ", 1)
-    else:
-        score_part, status_part = match_text, ""
-
-    # Now, split teams and their scores
     import re
-    teams_scores = re.findall(r'([A-Z]+)([\d/-]+ \(\d+ Ovs\))', score_part)
 
-    for team, score in teams_scores:
-        result += f"🏏 **{team}** - {score}\n"
+    result = ""
 
-    if status_part:
-        result += f"\nℹ️ {status_part}"
+    # Remove leading ℹ️ if present
+    match_text = match_text.replace("ℹ️", "").strip()
+
+    # 1. Find all "TEAM + SCORE" like MI12-0 (1.3 Ovs)
+    team_score_pattern = r'([A-Z]{2,4})(\d+-\d+ \(\d+(\.\d+)? Ovs\))'
+    matches = re.findall(team_score_pattern, match_text)
+
+    for match in matches:
+        team_code, score, _ = match
+        result += f"🏏 **{team_code}** - {score}\n"
+
+    # Remove matched part from original text
+    for match in matches:
+        full_match = "".join(match[:-1])  # exclude last group (decimal part)
+        match_text = match_text.replace(full_match, "").strip()
+
+    # 2. Now look for any TEAM codes separately (like LSG)
+    words = match_text.split()
+
+    for word in words:
+        if word in scheduled_teams:
+            result += f"🏏 **{word}**\n"
+            match_text = match_text.replace(word, "").strip()
+
+    # 3. Remaining text is status update
+    if match_text.strip():
+        result += f"\nℹ️ {match_text.strip()}\n"
 
     return result
+
+
 
 # --- Streamlit Display ---
 st.markdown("### 📺 Live Score")
@@ -278,7 +312,7 @@ if section == "Owner Rankings: Current vs Predicted":
 
             # --- Calculate deltas ---
             next_deltas = [""] + [str(format_delta(scores[i-1] - scores[i])) for i in range(1, len(scores))]
-            first_deltas = [format_delta(scores[0] - s) if i != 0 else "" for i, s in enumerate(scores)]
+            first_deltas = [str(format_delta(scores[0] - s)) if i != 0 else "" for i, s in enumerate(scores)]
 
             # --- Insert into dataframe ---
             merged_df.insert(3, "Next Rank Delta", next_deltas)
