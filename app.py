@@ -11,6 +11,11 @@ import plotly.express as px
 import lxml
 import requests
 from bs4 import BeautifulSoup
+from sections.owner_insights import show_owner_insights
+from sections.owners_performance import show_owners_performance
+#from sections.trades import mini_auction
+#from sections.c_vc_optimize show_cvc
+
 
 
 if "match_input" not in st.session_state:
@@ -295,55 +300,41 @@ if section == "Owner Rankings: Current vs Predicted":
             ])
 
             # --- Winning Chances ---
-            # --- Calculate Projected Final Scores and Winning Chances ---
             merged_df["Projected Final Score"] = merged_df["Current Score"] + \
                 (merged_df["Predicted Next Score"] - merged_df["Current Score"]) * (total_matches - n_matches_played)
             total_projected = merged_df["Projected Final Score"].sum()
             merged_df["Winning Chances (%)"] = (merged_df["Projected Final Score"] / total_projected * 100).round(1)
-           
-
-            # --- Clean up and rank ---
             merged_df.drop(columns=["Projected Final Score"], inplace=True)
 
-            
-            merged_df.insert(0, "Rank", merged_df["Current Score"].rank(method='first', ascending=False).astype(int))
+            # --- Ranking ---
+            merged_df["Rank"] = merged_df["Current Score"].rank(method='first', ascending=False).astype(int)
             merged_df = merged_df.sort_values(by="Current Score", ascending=False).reset_index(drop=True)
 
-            scores = merged_df["Current Score"].values
-            def format_delta(val):
-                return "" if val == "" else int(val) if val == int(val) else round(val, 1)
-            
-            # --- Determine Qualification Status ---
+            # --- Status Column (Q/E/blank) ---
             remaining_matches = total_matches - n_matches_played
             merged_df["Projected Points"] = (merged_df["Predicted Next Score"] - merged_df["Current Score"]) * remaining_matches
             merged_df["Max Score"] = merged_df["Current Score"] + merged_df["Projected Points"]
-
-            # Use current 4th place score as the cutoff
             cutoff_score = merged_df.sort_values("Current Score", ascending=False).iloc[3]["Current Score"]
 
             def determine_status(row):
-                if row["Current Score"] >= cutoff_score and row["Rank"] <= 4:
-                    return "Q"  # Qualified
-                elif row["Max Score"] < cutoff_score:
-                    return "E"  # Eliminated
+                if row["Rank"] <= 2 and row["Current Score"] >= cutoff_score:
+                    return "Q"
+                elif row["Max Score"] >= cutoff_score:
+                    return ""
                 else:
-                    return ""   # Still in contention
+                    return "E"
 
             merged_df["Status"] = merged_df.apply(determine_status, axis=1)
             merged_df.drop(columns=["Projected Points", "Max Score"], inplace=True)
 
-            # Reorder to move Status before Rank
-            cols = ["Status"] + [col for col in merged_df.columns if col != "Status"]
-            merged_df = merged_df[cols]
-
-
-            # --- Calculate deltas ---
+            # --- Rank Deltas ---
+            scores = merged_df["Current Score"].values
+            def format_delta(val):
+                return "" if val == "" else int(val) if val == int(val) else round(val, 1)
             next_deltas = [""] + [str(format_delta(scores[i-1] - scores[i])) for i in range(1, len(scores))]
             first_deltas = [str(format_delta(scores[0] - s)) if i != 0 else "" for i, s in enumerate(scores)]
-
-            # --- Insert into dataframe ---
-            merged_df.insert(3, "Next Rank Delta", next_deltas)
-            merged_df.insert(4, "1st Rank Delta", first_deltas)
+            merged_df["Next Rank Delta"] = next_deltas
+            merged_df["1st Rank Delta"] = first_deltas
 
             # --- Arrow Icons in Owners Column ---
             latest_col, prev_col = df.columns[-1], df.columns[-2]
@@ -363,8 +354,16 @@ if section == "Owner Rankings: Current vs Predicted":
             arrow_map = dict(zip(temp_df["Owners"], temp_df["Styled Arrow"]))
             merged_df["Owners"] = merged_df["Owners"].apply(lambda x: f'{x} {arrow_map.get(x, "")}')
 
+            # --- Final Column Reordering ---
+            ordered_cols = [
+                "Status", "Rank", "Owners", "Current Score",
+                "Next Rank Delta", "1st Rank Delta",
+                "Predicted Next Score", "Change (%)",
+                "Players in Next Match", "Top 4 Appearances", "Winning Chances (%)"
+            ]
+            merged_df = merged_df[ordered_cols]
 
-            # --- Display Prediction Table ---
+            # --- Display Table ---
             st.dataframe(merged_df, use_container_width=True, hide_index=True)
 
             # --- Add footer ---
@@ -557,8 +556,6 @@ elif section == "Player Impact - Next Match Focus":
         st.info("Select a match to analyze player impact.").markdown("*Concise player projections for the upcoming game!*")
 
 
-
-
 elif section == "Team vs Team Comparison":
     st.subheader("🧠 Team vs Team Comparison - Owner's Team", divider="orange")
 
@@ -622,7 +619,7 @@ elif section == "Team vs Team Comparison":
 
     if not common_players.empty:
         st.markdown("### 🔁 Shared Players")
-        st.dataframe(common_players, use_container_width=True)
+        st.dataframe(common_players, use_container_width=True, hide_index=True)
     else:
         st.info("No shared players between the selected owners.")
 
@@ -752,290 +749,17 @@ elif section == "Team of the Tournament":
 #     )
 
 # elif section == "Best C/VC Suggestion":
-#     st.subheader("🔮 What-If Best C/VC Optimization",divider="orange")
-
-#     what_if_results = []
-
-#     # Captain and Vice-Captain maps
-#     captain_map = {
-#         "Mahesh": "Jos Buttler", "Asif": "Pat Cummins", "Pritesh": "Abhishek Sharma",
-#         "Pritam": "Suryakumar Yadav", "Lalit": "Shreyas Iyer", "Umesh": "Travis Head",
-#         "Sanskar": "Hardik Pandya", "Johnson": "Sunil Naraine", "Somansh": "Rashid Khan",
-#         "Wilfred": "Rachin Ravindra"
-#     }
-#     vice_captain_map = {
-#         "Mahesh": "N. Tilak Varma", "Asif": "Venkatesh Iyer", "Pritesh": "Yashasvi Jaiswal",
-#         "Pritam": "Virat Kohli", "Lalit": "Shubman Gill", "Umesh": "Rohit Sharma",
-#         "Sanskar": "Axar Patel", "Johnson": "Sanju Samson", "Somansh": "Phil Salt",
-#         "Wilfred": "KL Rahul"
-#     }
-
-#     for owner, group in points_df.groupby("Owner"):
-#         owner_players = group.copy()
-
-#         # Base team total (excluding actual C/VC bonus)
-#         captain_name = captain_map.get(owner)
-#         vice_captain_name = vice_captain_map.get(owner)
-
-#         captain_points = owner_players[owner_players["Player Name"] == captain_name]["Total Points"].sum()
-#         vice_captain_points = owner_players[owner_players["Player Name"] == vice_captain_name]["Total Points"].sum()
-
-#         actual_bonus = captain_points + (vice_captain_points * 0.5)
-#         actual_total = owner_players["Total Points"].sum()
-#         base_total = actual_total - actual_bonus
-
-#         # Best C/VC selection
-#         sorted_players = owner_players.sort_values("Total Points", ascending=False).reset_index(drop=True)
-#         best_captain = sorted_players.iloc[0]
-#         best_vice_captain = sorted_players.iloc[1] if len(sorted_players) > 1 else None
-
-#         best_bonus = best_captain["Total Points"]
-#         if best_vice_captain is not None:
-#             best_bonus += best_vice_captain["Total Points"] * 0.5
-
-#         optimized_total = base_total + best_bonus
-
-#         what_if_results.append({
-#             "Owner": owner,
-#             "Best Captain": best_captain["Player Name"],
-#             "Best VC": best_vice_captain["Player Name"] if best_vice_captain is not None else "N/A",
-#             "Best C/VC Bonus": round(best_bonus),
-#             "Optimized Team Total": round(optimized_total)
-#         })
-
-#     what_if_df = pd.DataFrame(what_if_results).sort_values("Optimized Team Total", ascending=False).reset_index(drop=True)
-
-#     st.dataframe(
-#         what_if_df.style.format({
-#             "Best C/VC Bonus": "{:.0f}",
-#             "Optimized Team Total": "{:.0f}"
-#         })
-#     )
+      #show_cvc(points_df)
 
 
 # elif section == "Players to Watch Out for in Mini Auction":
-#     # --- Load Unsold Players Data ---
-#     try:
-#         unsold_df = pd.read_csv("unsold_players.csv")
-
-#         if not unsold_df.empty and "Points" in unsold_df.columns:
-#             # Ensure numeric points
-#             unsold_df["Points"] = pd.to_numeric(unsold_df["Points"], errors="coerce")
-            
-#             # Drop rows where points are NaN
-#             unsold_df = unsold_df.dropna(subset=["Points"])
-
-#             # Sort and select top performers
-#             top_unsold_players = unsold_df.sort_values(by="Points", ascending=False).head(10).reset_index(drop=True)
-
-#             # Display the section
-#             st.markdown("## 🔍 Players to Watch Out for in Mini Auction")
-#             st.dataframe(top_unsold_players.style.format({"Points": "{:.1f}"}))
-#         else:
-#             st.warning("Unsold players data is empty or missing 'Points' column.")
-#     except FileNotFoundError:
-#         st.error("`unsold_players.csv` not found. Please add the file to the project directory.")
-
-
-#     # --- Trade Suggestions (Advanced with Team Balance Rule) ---
-
-#     st.subheader("🔄💰 Trade Suggestions Based on Team Performance and Budget",divider="orange")
-
-#     # Budget data from your image (could be loaded from a CSV as well)
-#     budget_data = {
-#         "Mahesh": 40, "Sanskar": 0, "Johnson": 80, "Asif": 310, "Pritam": 40,
-#         "Umesh": 30, "Lalit": 0, "Somansh": 0, "Wilfred": 0, "Pritesh": 130
-#     }
-
-#     trade_suggestions = []
-
-#     for owner in points_df["Owner"].unique():
-#         # Exclude (O) and (S) players locally
-#         owner_points = points_df[
-#             (points_df["Owner"] == owner) &
-#             (~points_df["Player Name"].str.contains(r"\((O|S)\)", regex=True))
-#         ].copy()
-
-#         # --- Ensure team formation isn't broken (keep at least 1 player per team) ---
-#         team_counts = owner_points["Team"].value_counts()
-
-#         # Find eligible release candidates based on low scores and team balance
-#         release_candidates = []
-#         for _, row in owner_points.sort_values("Total Points").iterrows():
-#             team = row["Team"]
-#             player_name = row["Player Name"]
-#             if team_counts[team] > 1:
-#                 release_candidates.append(row)
-#                 team_counts[team] -= 1  # simulate removing this player
-#             if len(release_candidates) == 2:
-#                 break
-
-#         # If less than 2 can be released (e.g. small team), skip
-#         if len(release_candidates) < 2:
-#             release_names = [row["Player Name"] for row in release_candidates]
-#             value_of_release = 0
-#             updated_budget = budget_data.get(owner, 0)
-#             trade_suggestions.append({
-#                 "Owner": owner,
-#                 "Budget Before": budget_data.get(owner, 0),
-#                 "Released Players": ", ".join(release_names),
-#                 "Value of Released": 0,
-#                 "Updated Budget": updated_budget,
-#                 "Lowest Scoring Teams": "Not enough eligible releases",
-#                 "Suggested Picks": "None"
-#             })
-#             continue
-
-#         to_release_df = pd.DataFrame(release_candidates)
-#         release_names = to_release_df["Player Name"].tolist()
-
-#         # --- Adjust value return based on 200-value rule ---
-#         adjusted_values = []
-#         for _, row in to_release_df.iterrows():
-#             value = row["Player Value"]
-#             adjusted = value * 0.5 if value > 200 else value
-#             adjusted_values.append(adjusted)
-
-#         value_of_release = sum(adjusted_values)
-
-#         # --- Update budget with adjusted value ---
-#         initial_budget = budget_data.get(owner, 0)
-#         updated_budget = initial_budget + value_of_release
-
-#         # --- Identify 2 lowest scoring teams for this owner ---
-#         team_scores = owner_points.groupby("Team")["Total Points"].sum().sort_values()
-#         low_teams = team_scores.head(2).index.tolist()
-
-#         # --- Suggest unsold players from those teams (only if they have >0 points & within budget) ---
-#         eligible_unsold = unsold_df[
-#             (unsold_df["Team"].isin(low_teams)) &
-#             (unsold_df["Points"] > 0) &
-#             (unsold_df["Base Price"] <= updated_budget) &
-#             (~unsold_df["Player Name"].str.contains(r"\((O|S)\)", regex=True))
-#         ].sort_values(by="Points", ascending=False)
-
-#         picks = eligible_unsold.head(2)["Player Name"].tolist()
-
-#         # --- Store suggestion row ---
-#         trade_suggestions.append({
-#             "Owner": owner,
-#             "Budget Before": initial_budget,
-#             "Released Players": ", ".join(release_names),
-#             "Value of Released": round(value_of_release, 2),
-#             "Updated Budget": round(updated_budget, 2),
-#             "Lowest Scoring Teams": ", ".join(low_teams),
-#             "Suggested Picks": ", ".join(picks) if picks else "None"
-#         })
-
-#     trade_df = pd.DataFrame(trade_suggestions)
-#     st.dataframe(trade_df, use_container_width=True,hide_index=True)
+#     mini_auction(points_df)
 
 elif section == "Owner Insights & Breakdown":
-    # --- Overall Insights Block ---
-
-    st.subheader("📊 Overall Insights", divider="orange")
-
-    # Mapping for Playing Role (applying to the entire points_df)
-    role_mapping = {'All': 'Allrounder', 'Bat': 'Batsman', 'Bowl': 'Bowler', 'WK': 'W. Keeper'}
-    points_df.loc[:, 'Playing Role'] = points_df['Playing Role'].map(role_mapping).fillna(points_df['Playing Role'])
-
-    # Stacked bar chart for total points by owner, segmented by playing role
-    st.subheader("Total Points by Owner (Stacked by Playing Role)")
-    fig_bar_stacked_owner = px.bar(
-        points_df,
-        x="Owner",
-        y="Total Points",
-        color="Playing Role",
-        title="Total Points per Owner, Segmented by Playing Role",
-        color_discrete_sequence=px.colors.qualitative.Prism
-    )
-    st.plotly_chart(fig_bar_stacked_owner, use_container_width=True)
-
-    # You can add other overall insights or aggregations here if needed
-
-    # You can add other overall insights or aggregations here if needed
-
-#elif section == "Owner Insights & Breakdown":
-    # --- Owner Insights Block ---
-
-    st.subheader("🧠 Owner Insights & Breakdown", divider="orange")
-
-    selected_owner = st.selectbox("Select an Owner", sorted(points_df["Owner"].unique()))
-
-    owner_df = points_df[points_df["Owner"] == selected_owner].copy()
-
-    # Prepare data
-    teamwise_df = owner_df.groupby("Team")["Total Points"].sum().reset_index()
-    owner_role_points = owner_df.groupby("Playing Role")["Total Points"].sum().reset_index()
-    owner_display_df = owner_df[["Player Name", "Team", "Total Points", "Player Value", "Playing Role"]].sort_values(by="Total Points", ascending=False)
-
-    # Tabs for charts
-    tab1, tab2, tab3 = st.tabs(["Player Contributions (Pie)", "Team Contributions (Bar)", "Role-based Points (Bar)"])
-
-    with tab1:
-        fig_pie = px.pie(
-            owner_df,
-            names="Player Name",
-            values="Total Points",
-            title=f"{selected_owner}'s Player Contributions",
-            color_discrete_sequence=px.colors.qualitative.Set3
-        )
-        st.plotly_chart(fig_pie, use_container_width=True)
-
-    with tab2:
-        fig_bar_team = px.bar(
-            teamwise_df,
-            x="Team",
-            y="Total Points",
-            title=f"{selected_owner}'s Team-wise Contributions",
-            color="Total Points",
-            color_continuous_scale="Blues"
-        )
-        st.plotly_chart(fig_bar_team, use_container_width=True)
-
-    with tab3:
-        fig_bar_role = px.bar(
-            owner_role_points,
-            x="Playing Role",
-            y="Total Points",
-            title=f"{selected_owner}'s Points by Playing Role",
-            color="Playing Role",
-            color_discrete_sequence=px.colors.qualitative.Pastel1
-        )
-        st.plotly_chart(fig_bar_role, use_container_width=True)
-
-    # Player table
-    st.markdown(f"#### 📊 Detailed Player Stats for {selected_owner}")
-    st.dataframe(owner_display_df, use_container_width=True, hide_index=True)
-
-    # Top & Bottom Performer
-    top_player = owner_df.sort_values("Total Points", ascending=False).iloc[0]
-    bottom_player = owner_df.sort_values("Total Points", ascending=True).iloc[0]
-
-    col3, col4 = st.columns(2)
-    with col3:
-        st.success(f"🏆 Top Performer: {top_player['Player Name']} ({top_player['Total Points']} pts)")
-    with col4:
-        st.warning(f"📉 Weakest Performer: {bottom_player['Player Name']} ({bottom_player['Total Points']} pts)")
+    show_owner_insights(points_df)
 
 elif section == "Owners Performance":
-    # --- Line Chart Plot ---
-    st.subheader("📈 Owners Performance Over Time",divider="orange")
-    fig, ax = plt.subplots(figsize=(15, 5))
-    cmap = plt.colormaps.get_cmap("tab10")
-    colors = [cmap(i % 10) for i in range(len(df))]
-
-    for i, owner in enumerate(df["Owners"]):
-        scores = df[df["Owners"] == owner].values[0][1:]
-        ax.plot(df.columns[1:], scores, marker='o', color=colors[i], linewidth=1.2, label=owner)
-
-    ax.set_title("Owners Performance Over Updates")
-    ax.set_xlabel("Updates")
-    ax.set_ylabel("Total Points")
-    ax.grid(True)
-    ax.legend(fontsize=8)
-    st.pyplot(fig)
-
+   show_owners_performance(df)
 
 st.markdown("---")
 st.caption("Made with ❤️ using Streamlit")
