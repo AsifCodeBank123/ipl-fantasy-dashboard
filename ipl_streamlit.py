@@ -304,12 +304,38 @@ if section == "Owner Rankings: Current vs Predicted":
 
             # --- Clean up and rank ---
             merged_df.drop(columns=["Projected Final Score"], inplace=True)
+
+            
             merged_df.insert(0, "Rank", merged_df["Current Score"].rank(method='first', ascending=False).astype(int))
             merged_df = merged_df.sort_values(by="Current Score", ascending=False).reset_index(drop=True)
 
             scores = merged_df["Current Score"].values
             def format_delta(val):
                 return "" if val == "" else int(val) if val == int(val) else round(val, 1)
+            
+            # --- Determine Qualification Status ---
+            remaining_matches = total_matches - n_matches_played
+            merged_df["Projected Points"] = (merged_df["Predicted Next Score"] - merged_df["Current Score"]) * remaining_matches
+            merged_df["Max Score"] = merged_df["Current Score"] + merged_df["Projected Points"]
+
+            # Use current 4th place score as the cutoff
+            cutoff_score = merged_df.sort_values("Current Score", ascending=False).iloc[3]["Current Score"]
+
+            def determine_status(row):
+                if row["Current Score"] >= cutoff_score and row["Rank"] <= 4:
+                    return "Q"  # Qualified
+                elif row["Max Score"] < cutoff_score:
+                    return "E"  # Eliminated
+                else:
+                    return ""   # Still in contention
+
+            merged_df["Status"] = merged_df.apply(determine_status, axis=1)
+            merged_df.drop(columns=["Projected Points", "Max Score"], inplace=True)
+
+            # Reorder to move Status before Rank
+            cols = ["Status"] + [col for col in merged_df.columns if col != "Status"]
+            merged_df = merged_df[cols]
+
 
             # --- Calculate deltas ---
             next_deltas = [""] + [str(format_delta(scores[i-1] - scores[i])) for i in range(1, len(scores))]
@@ -337,36 +363,6 @@ if section == "Owner Rankings: Current vs Predicted":
             arrow_map = dict(zip(temp_df["Owners"], temp_df["Styled Arrow"]))
             merged_df["Owners"] = merged_df["Owners"].apply(lambda x: f'{x} {arrow_map.get(x, "")}')
 
-            # Custom CSS for styling the DataFrame
-            st.markdown(
-                """
-                <style>
-                .dataframe {
-                    width: 100%;
-                    border-collapse: collapse;
-                }
-                .dataframe th, .dataframe td {
-                    padding: 10px;
-                    text-align: left;
-                    border: 1px solid #ddd;
-                }
-                .dataframe th {
-                    background-color: #4CAF50; /* Green for header */
-                    color: white;
-                }
-                .dataframe tr:nth-child(even) {
-                    background-color: #f2f2f2; /* Light gray for even rows */
-                }
-                .dataframe tr:hover {
-                    background-color: #ddd; /* Gray on hover */
-                }
-                .dataframe td {
-                    color: #333; /* Dark text for readability */
-                }
-                </style>
-                """,
-                unsafe_allow_html=True
-            )
 
             # --- Display Prediction Table ---
             st.dataframe(merged_df, use_container_width=True, hide_index=True)
