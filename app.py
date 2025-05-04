@@ -16,7 +16,7 @@ from sections.team_comparison import show_comparison
 from sections.team_of_tournament import show_team
 from sections.player_impact import show_impact
 from sections.owner_rankings import show_rank
-   
+
 
 if "match_input" not in st.session_state:
     st.session_state.match_input = None
@@ -61,6 +61,29 @@ for match in match_df["Match"]:
 # --- Maintain a finished matches set globally ---
 finished_matches = set()
 
+# --- Helper function to get available matches ---
+def get_available_matches(match_df):
+    ist = pytz.timezone("Asia/Kolkata")
+    current_time = datetime.now(ist)  # Move this inside
+    match_df = match_df.copy()
+    match_df["MatchStartWindow"] = match_df["DateTime"] - timedelta(minutes=30)
+    match_df["MatchEndWindow"] = match_df["DateTime"] + timedelta(hours=4)
+
+    available_matches_df = match_df[
+        ((current_time >= match_df["MatchStartWindow"]) & (current_time <= match_df["MatchEndWindow"])) |
+        (match_df["DateTime"] > current_time)
+    ].copy()
+
+    available_matches_df = available_matches_df.sort_values("DateTime")
+    return available_matches_df
+
+# Combine Date and Time into a single DateTime column
+match_df['DateTime'] = match_df['Date'] + ' ' + match_df['Time']
+match_df['DateTime'] = pd.to_datetime(match_df['DateTime'], format='%d-%b-%y %I:%M %p').dt.tz_localize("Asia/Kolkata")
+
+# --- Setup: Get available matches once ---
+available_matches_df = get_available_matches(match_df) # <--- Call it here
+
 def fetch_live_matches():
     global finished_matches
 
@@ -95,15 +118,16 @@ def fetch_live_matches():
                 if any(team in match_text for team in teams):
                     if scheduled_match not in finished_matches:
                         live_matches.append(match_text)
-                    break  # Once matched, no need to check further
+                    break   # Once matched, no need to check further
 
         return live_matches
 
     except Exception as e:
         return [f"⚠️ Failed to load live matches: {str(e)}"]
-    
+
+
 def format_live_match(match_text):
-  
+
     result = ""
 
     # Remove leading ℹ️ if present
@@ -162,31 +186,6 @@ points_df.columns = [col if len(col) < 15 else col[:12] + "..." for col in point
 ist = pytz.timezone("Asia/Kolkata")
 current_time = datetime.now(ist)
 
-# Combine Date and Time into a single DateTime column
-match_df['DateTime'] = match_df['Date'] + ' ' + match_df['Time']
-match_df['DateTime'] = pd.to_datetime(match_df['DateTime'], format='%d-%b-%y %I:%M %p').dt.tz_localize("Asia/Kolkata")
-
-# --- Helper function to get available matches ---
-def get_available_matches(match_df):
-    current_time = datetime.now(ist)  # Move this inside
-    match_df = match_df.copy()
-    match_df["MatchStartWindow"] = match_df["DateTime"] - timedelta(minutes=30)
-    match_df["MatchEndWindow"] = match_df["DateTime"] + timedelta(hours=4)
-
-    available_matches_df = match_df[
-        ((current_time >= match_df["MatchStartWindow"]) & (current_time <= match_df["MatchEndWindow"])) |
-        (match_df["DateTime"] > current_time)
-    ].copy()
-
-    available_matches_df = available_matches_df.sort_values("DateTime")
-    return available_matches_df
-
-
-# --- Setup: Get available matches once ---
-#current_time = datetime.now(ist)
-available_matches_df = get_available_matches(match_df)
-
-# You can now use available_matches_df anywhere below without recalculating
 
 # Ensure the "CVC Bonus Points" column exists and is of float type
 if "CVC Bonus Points" not in points_df.columns:
@@ -230,10 +229,6 @@ with st.sidebar.expander("📂 Select Section", expanded=True):
         "Owners Performance"
     ])
 
-
-
-
-
 if section == "Owner Rankings: Current vs Predicted":
     show_rank(df, df_diff, points_df, available_matches_df, n_matches_played, total_matches, st.session_state.top4_count)
 
@@ -242,11 +237,39 @@ elif section == "Player Impact - Next Match Focus":
     show_impact(points_df, available_matches_df, n_matches_played)
 
 elif section == "Team vs Team Comparison":
-     show_comparison(points_df, df)
-    
+    show_comparison(points_df, df)
+
 
 elif section == "Team of the Tournament":
     show_team(points_df)
+
+# elif section == "Captain/Vice-Captain Impact Analysis":
+#     st.subheader("💥 Captain/Vice-Captain Impact Analysis", divider="orange")
+
+#     summary = points_df.groupby("Owner").agg(
+#         Team_Total_Points=("Total Points", "sum"),
+#         CVC_Bonus_Points=("CVC Bonus Points", "sum")
+#     ).reset_index()
+
+#     summary["CVC_Impact_%"] = (summary["CVC_Bonus_Points"] / summary["Team_Total_Points"]) * 100
+#     summary = summary.sort_values("CVC_Bonus_Points", ascending=False)
+
+#     st.dataframe(
+#         summary.style.format({
+#             "CVC_Impact_%": "{:.0f}%",
+#             "CVC_Bonus_Points": "{:.0f}",
+#             "Team_Total_Points": "{:.0f}"
+#         }),
+#         use_container_width=True
+#     )
+
+# elif section == "Best C/VC Suggestion":
+    #show_cvc(points_df)
+
+
+# elif section == "Players to Watch Out for in Mini Auction":
+#     mini_auction(points_df)
+
 
 # elif section == "Captain/Vice-Captain Impact Analysis":
 #     st.subheader("💥 Captain/Vice-Captain Impact Analysis", divider="orange")
