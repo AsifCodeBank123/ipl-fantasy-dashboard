@@ -29,7 +29,7 @@ st.set_page_config(layout="wide", page_title="HPL Fantasy Dashboard")
 st.header("🏏 :orange[HPL] Fantasy League Performance Dashboard", divider = "orange")
 
 # --- Inputs ---
-n_matches_played = 10
+n_matches_played = 11
 total_matches = 14
 
 # --- Captain and Vice-Captain selections for each owner ---
@@ -101,6 +101,56 @@ def fetch_live_matches():
 
     except Exception as e:
         return [f"⚠️ Failed to load live matches: {str(e)}"]
+    
+def format_live_match(match_text):
+  
+    result = ""
+
+    # Remove leading ℹ️ if present
+    match_text = match_text.replace("ℹ️", "").strip()
+
+    # 1. Find all "TEAM + SCORE" like MI12-0 (1.3 Ovs)
+    team_score_pattern = r'([A-Z]{2,4})(\d+-\d+ \(\d+(\.\d+)? Ovs\))'
+    matches = re.findall(team_score_pattern, match_text)
+
+    for match in matches:
+        team_code, score, _ = match
+        result += f"🏏 **{team_code}** - {score}\n"
+
+    # Remove matched part from original text
+    for match in matches:
+        full_match = "".join(match[:-1])  # exclude last group (decimal part)
+        match_text = match_text.replace(full_match, "").strip()
+
+    # Now look for any TEAM codes separately (like LSG)
+    words = match_text.split()
+
+    for word in words:
+        if word in scheduled_teams:
+            result += f"🏏 **{word}**\n"
+            match_text = match_text.replace(word, "").strip()
+
+    # 3. Remaining text is status update
+    if match_text.strip():
+        result += f"\nℹ️ {match_text.strip()}\n"
+
+    return result
+
+# --- Streamlit Display ---
+st.markdown("### 📺 Live Score")
+st.write("")
+
+live_scores = fetch_live_matches()
+
+if live_scores:
+    for match in live_scores:
+        formatted_text = format_live_match(match)
+        st.markdown(formatted_text)  # <-- USE MARKDOWN for line breaks!
+        st.write("")  # Space between matches
+else:
+    st.info("No live matches at the moment.")
+
+st.write("")
 
 # --- Load Data ---
 df = pd.read_csv("owners_performance_updates.csv")
@@ -181,58 +231,7 @@ with st.sidebar.expander("📂 Select Section", expanded=True):
     ])
 
 
-def format_live_match(match_text):
-  
 
-    result = ""
-
-    # Remove leading ℹ️ if present
-    match_text = match_text.replace("ℹ️", "").strip()
-
-    # 1. Find all "TEAM + SCORE" like MI12-0 (1.3 Ovs)
-    team_score_pattern = r'([A-Z]{2,4})(\d+-\d+ \(\d+(\.\d+)? Ovs\))'
-    matches = re.findall(team_score_pattern, match_text)
-
-    for match in matches:
-        team_code, score, _ = match
-        result += f"🏏 **{team_code}** - {score}\n"
-
-    # Remove matched part from original text
-    for match in matches:
-        full_match = "".join(match[:-1])  # exclude last group (decimal part)
-        match_text = match_text.replace(full_match, "").strip()
-
-    # 2. Now look for any TEAM codes separately (like LSG)
-    words = match_text.split()
-
-    for word in words:
-        if word in scheduled_teams:
-            result += f"🏏 **{word}**\n"
-            match_text = match_text.replace(word, "").strip()
-
-    # 3. Remaining text is status update
-    if match_text.strip():
-        result += f"\nℹ️ {match_text.strip()}\n"
-
-    return result
-
-
-
-# --- Streamlit Display ---
-st.markdown("### 📺 Live Score")
-st.write("")
-
-live_scores = fetch_live_matches()
-
-if live_scores:
-    for match in live_scores:
-        formatted_text = format_live_match(match)
-        st.markdown(formatted_text)  # <-- USE MARKDOWN for line breaks!
-        st.write("")  # Space between matches
-else:
-    st.info("No live matches at the moment.")
-
-st.write("")
 
 
 if section == "Owner Rankings: Current vs Predicted":
