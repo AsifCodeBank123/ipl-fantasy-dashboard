@@ -83,7 +83,7 @@ def show_rank(df: pd.DataFrame, df_diff: pd.DataFrame, points_df: pd.DataFrame, 
             cutoff_score = merged_df.sort_values("Current Score", ascending=False).iloc[3]["Current Score"]
 
             def determine_status(row):
-                if row["Rank"] <= 2 and row["Current Score"] >= cutoff_score:
+                if row["Rank"] <= 4 and row["Current Score"] >= cutoff_score:
                     return "Q"
                 elif row["Max Score"] >= cutoff_score:
                     return ""
