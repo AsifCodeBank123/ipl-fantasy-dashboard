@@ -16,6 +16,7 @@ from sections.team_comparison import show_comparison
 from sections.team_of_tournament import show_team
 from sections.player_impact import show_impact
 from sections.owner_rankings import show_rank
+from sections.qualification_chances import show_chances
 
 
 if "match_input" not in st.session_state:
@@ -226,7 +227,8 @@ with st.sidebar.expander("📂 Select Section", expanded=True):
         "Team vs Team Comparison",
         "Team of the Tournament",
         "Owner Insights & Breakdown",
-        "Owners Performance"
+        "Owners Performance",
+        "Qualification Chances"
     ])
 
 if section == "Owner Rankings: Current vs Predicted":
@@ -297,6 +299,9 @@ elif section == "Team of the Tournament":
 
 # elif section == "Players to Watch Out for in Mini Auction":
 #     mini_auction(points_df)
+elif section == "Qualification Chances":
+    show_chances(points_df, match_data, n_matches_played)
+
 
 elif section == "Owner Insights & Breakdown":
     show_owner_insights(points_df)

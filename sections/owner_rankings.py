@@ -109,12 +109,14 @@ def show_rank(df: pd.DataFrame, df_diff: pd.DataFrame, points_df: pd.DataFrame, 
             temp_df["Curr Rank"] = temp_df[latest_col].rank(method="first", ascending=False).astype(int)
 
             def rank_change_arrow(row):
-                if row["Curr Rank"] < row["Prev Rank"]:
-                    return '🚀'
-                elif row["Curr Rank"] > row["Prev Rank"]:
-                    return '🔻'
+                delta = row["Prev Rank"] - row["Curr Rank"]
+                if delta > 0:
+                    return f'🔥 (+{delta})'
+                elif delta < 0:
+                    return f'🔻 ({delta})'
                 else:
-                    return '➡'
+                    return ''
+
 
             temp_df["Styled Arrow"] = temp_df.apply(rank_change_arrow, axis=1)
             arrow_map = dict(zip(temp_df["Owners"], temp_df["Styled Arrow"]))
@@ -131,6 +133,8 @@ def show_rank(df: pd.DataFrame, df_diff: pd.DataFrame, points_df: pd.DataFrame, 
 
             # --- Display Table ---
             st.dataframe(merged_df, use_container_width=True, hide_index=True)
+
+            st.session_state.owner_ranking_df = merged_df.copy()
 
             # --- Add footer ---
             st.markdown("---")
