@@ -15,7 +15,15 @@ def show_chances(points_df: pd.DataFrame, match_data: pd.DataFrame, n_matches_pl
 
     if selected_owner1 and selected_owner2:
         if selected_owner1 == selected_owner2:
-            st.warning("Khud se hi competition? Thoda soch leta bhai comparison se pehle! 😉")
+            self_comparison_funny_statements = [
+                "Khud ki hi photo dekh raha hai? Confidence ho toh aisa! 😉",
+                "Apne pair pe kulhadi maarne ka tareeka thoda casual hai yeh. 😂",
+                "Narcissus bhi itna obsessed nahi tha khud se! 😅",
+                "Mirror mirror on the wall, who's the fairest of them all? (Spoiler: It's you comparing with yourself!) 😜",
+                "Ek hi team, do alag alag angles se analysis... interesting strategy! 🤔",
+                "Bhai, akele-akele kya compare kar raha hai? Duniya dekhegi toh kya kahegi! 🤪"
+            ]
+            st.warning(random.choice(self_comparison_funny_statements))
         else:
             owner1_df = points_df[points_df['Owner'] == selected_owner1]
             total_points_owner1 = owner1_df['Total Points'].sum()
@@ -66,10 +74,12 @@ def show_chances(points_df: pd.DataFrame, match_data: pd.DataFrame, n_matches_pl
 
             if selected_owner1 in top_4_owners and selected_owner2 in top_4_owners:
                 top_4_funny_statements = [
-                    f" अरे वाह! :blue[{selected_owner1}] और :red[{selected_owner2}] dono top 4 mein! Kya farak padta hai ab, maje karo! 😎",
-                    f"Dekho toh! :blue[{selected_owner1}] and :red[{selected_owner2}], top 4 ke VIPs! Chill karo, seat toh booked hai. 😉",
-                    f" :blue[{selected_owner1}] vs :red[{selected_owner2}] ka muqabla... top 4 mein ho toh tension kya lena? Enjoy the rest of the league! 😄",
-                    f" Kya baat hai! :blue[{selected_owner1}] aur :red[{selected_owner2}]... top 4 club ke members! Ab toh bas position final karni hai, easy peasy! 👍"
+                    f" अरे वाह! :blue[{selected_owner1}] और :red[{selected_owner2}] dono top 4 mein! Ab kya dekhega? Bas maje karo! 😎",
+                    f"Top 4 ke sher ho tum dono! :blue[{selected_owner1}] vs :red[{selected_owner2}]... yeh toh bas position ki ladai hai, tension nahi! 😉",
+                    f"Lagta hai :blue[{selected_owner1}] aur :red[{selected_owner2}] ko sirf yeh dekhna hai ki number 1 kaun banta hai top 4 mein! 😄",
+                    f"Top 4 confirmed! Ab :blue[{selected_owner1}] aur :red[{selected_owner2}] bas yeh decide kar rahe hain ki podium pe left se jaana hai ya right se! 👍",
+                    f"Kya baat hai! :blue[{selected_owner1}] aur :red[{selected_owner2}]... qualification toh jeb mein hai! Ab dekhte hain ego kitna hurt hota hai haarne pe! 😜",
+                    f"Dono top 4 mein? Yeh comparison toh 'baap baap hota hai' ya 'haathi ke daant khane ke aur, dikhane ke aur' wala scene hai! 😂"
                 ]
                 st.success(random.choice(top_4_funny_statements))
             elif realistic_final_diff > 0:
@@ -80,10 +90,12 @@ def show_chances(points_df: pd.DataFrame, match_data: pd.DataFrame, n_matches_pl
                 st.info("Both owners are projected to finish neck and neck!")
 
             lower_ranker_funny_statements = [
-                f":blue[{selected_owner1}], itne points ka farak? Dekh ke compare karna, kahin 'sharm kar le bhai' moment na aa jaaye. 😉",
-                f":red[{selected_owner2}], lagta hai thodi zyada mehnat karni padegi. Just saying, comparison soch samajh ke karna! 😂",
-                "Hmm, someone's feeling brave with this comparison! Let's see how it plays out. 🤔",
-                "Hope this comparison is for motivation, not just for fun! 😅"
+                f":blue[{selected_owner1}], itne points ka farak? Dekh ke compare karna, kahin 'sharm kar le bhai' moment na aa jaaye! 😬",
+                f":red[{selected_owner2}], lagta hai thodi zyada 'miracle' ki zaroorat hai. Comparison toh theek hai, par reality check bhi zaroori hai! 😂",
+                f"Someone's comparing the Everest with a molehill? Just kidding... mostly! 😉 (:blue[{selected_owner1}] or :red[{selected_owner2}], guess who!)",
+                f"Hope this comparison is a source of motivation, aur 'arre yaar, kahan phas gaya' wali feeling nahi aa rahi hogi! 😅 (:blue[{selected_owner1}] or :red[{selected_owner2}], handle with care!)",
+                f":blue[{selected_owner1}] aur :red[{selected_owner2}] ka comparison... ek taraf 'jeet ka jhanda', doosri taraf 'koshish jaari hai' wala vibe! 🤔",
+                f"Bhai, agar zyada hi farak hai toh comparison se pehle ek baar leaderboard dekh lena chahiye tha! Just saying! 🤪 (:blue[{selected_owner1}] or :red[{selected_owner2}], no offense!)"
             ]
 
             if (selected_owner1 in lower_ranked_threshold or selected_owner2 in lower_ranked_threshold) and abs(points_difference) > 250 and remaining_matches > 0 and (selected_owner1 not in top_4_owners or selected_owner2 not in top_4_owners):
@@ -92,13 +104,13 @@ def show_chances(points_df: pd.DataFrame, match_data: pd.DataFrame, n_matches_pl
                 st.info("The league stage is over. The final standings are what they are!")
 
             if points_difference > 500 and avg_diff > 50 and remaining_matches < 5 and (selected_owner1 not in top_4_owners or selected_owner2 not in top_4_owners):
-                st.error(f":blue[{selected_owner1}], bhai, :red[{selected_owner2}] se itna farak? Thoda mushkil hai ab. 😅")
+                st.error(f":blue[{selected_owner1}], bhai, :red[{selected_owner2}] se itna farak? Ab toh 'thoda mushkil hai' understatement hoga! 😅")
             elif points_difference < -500 and avg_diff < -50 and remaining_matches < 5 and (selected_owner1 not in top_4_owners or selected_owner2 not in top_4_owners):
-                st.error(f":red[{selected_owner2}], yaar, :blue[{selected_owner1}] bahut aage nikal gaya. Ab toh 'tu rehne de, tere se nahi hoga bhai' wali situation hai. 😉")
+                st.error(f":red[{selected_owner2}], yaar, :blue[{selected_owner1}] bahut aage nikal gaya. Ab toh 'tu rehne de, tere se nahi hoga bhai' is the official anthem! 😉")
             elif points_difference > 1000 and remaining_matches < 3 and (selected_owner1 not in top_4_owners or selected_owner2 not in top_4_owners):
-                st.error(f":blue[{selected_owner1}], it's looking like a done deal against :red[{selected_owner2}]! 🎉")
+                st.error(f":blue[{selected_owner1}], yeh toh 'ek tarfa pyaar' wala comparison ho gaya! 🎉 :red[{selected_owner2}], next season try karna!")
             elif points_difference < -1000 and remaining_matches < 3 and (selected_owner1 not in top_4_owners or selected_owner2 not in top_4_owners):
-                st.error(f":red[{selected_owner2}], ab toh :blue[{selected_owner1}] ko pakadna 'Mission Impossible' lag raha hai! 😬")
+                st.error(f":red[{selected_owner2}], ab toh :blue[{selected_owner1}] ko pakadna 'bhagwan bharose' wali baat hai! 😬 All the best for the next match... maybe!")
             else:
                 st.info("The remaining matches could still bring about a significant change in fortunes!")
 
