@@ -30,12 +30,14 @@ def show_chances(points_df: pd.DataFrame, match_data: pd.DataFrame, n_matches_pl
             avg_points_owner1 = total_points_owner1 / n_matches_played if n_matches_played > 0 else 0
             max_points_per_match_owner1 = owner1_df['Total Points'].max() if not owner1_df.empty else 0
             max_possible_owner1 = total_points_owner1 + (max_points_per_match_owner1 * (14 - n_matches_played))
+            captain_vc_points_owner1 = owner1_df[owner1_df['CVC Bonus Points'] > 0]['CVC Bonus Points'].sum()
 
             owner2_df = points_df[points_df['Owner'] == selected_owner2]
             total_points_owner2 = owner2_df['Total Points'].sum()
             avg_points_owner2 = total_points_owner2 / n_matches_played if n_matches_played > 0 else 0
             max_points_per_match_owner2 = owner2_df['Total Points'].max() if not owner2_df.empty else 0
             max_possible_owner2 = total_points_owner2 + (max_points_per_match_owner2 * (14 - n_matches_played))
+            captain_vc_points_owner2 = owner2_df[owner2_df['CVC Bonus Points'] > 0]['CVC Bonus Points'].sum()
 
             remaining_matches = 14 - n_matches_played
 
@@ -43,24 +45,25 @@ def show_chances(points_df: pd.DataFrame, match_data: pd.DataFrame, n_matches_pl
 
             comparison_data = {
                 "Owner": [selected_owner1, selected_owner2],
-                "Current Points": [f"{total_points_owner1:.2f}", f"{total_points_owner2:.2f}"],
-                "Avg. Points/Match": [f"{avg_points_owner1:.2f}", f"{avg_points_owner2:.2f}"],
-                "Max Points in a Match": [f"{max_points_per_match_owner1:.2f}", f"{max_points_per_match_owner2:.2f}"],
-                "Est. Points in Remaining Matches (Avg.)": [f"{avg_points_owner1 * remaining_matches:.2f}", f"{avg_points_owner2 * remaining_matches:.2f}"],
-                "Realistic Final Score": [f"{total_points_owner1 + (avg_points_owner1 * remaining_matches):.2f}",
-                                          f"{total_points_owner2 + (avg_points_owner2 * remaining_matches):.2f}"],
-                "Maximum Possible Final Score": [f"{max_possible_owner1:.2f}", f"{max_possible_owner2:.2f}"]
+                "Current Points": [f"{total_points_owner1:.1f}", f"{total_points_owner2:.1f}"],
+                "Avg. Points/Match": [f"{avg_points_owner1:.1f}", f"{avg_points_owner2:.1f}"],
+                "Max Points in a Match": [f"{max_points_per_match_owner1:.1f}", f"{max_points_per_match_owner2:.1f}"],
+                "Total C/VC Bonus Points": [f"{captain_vc_points_owner1:.1f}", f"{captain_vc_points_owner2:.1f}"],
+                "Est. Points in Remaining Matches (Avg.)": [f"{avg_points_owner1 * remaining_matches:.1f}", f"{avg_points_owner2 * remaining_matches:.1f}"],
+                "Realistic Final Score": [f"{total_points_owner1 + (avg_points_owner1 * remaining_matches):.1f}",
+                                          f"{total_points_owner2 + (avg_points_owner2 * remaining_matches):.1f}"],
+                "Maximum Possible Final Score": [f"{max_possible_owner1:.1f}", f"{max_possible_owner2:.1f}"]
             }
 
             comparison_df = pd.DataFrame(comparison_data)
             st.dataframe(comparison_df, use_container_width=True, hide_index=True)
 
-            st.info("This table provides a comparison based on current performance, average potential, and absolute maximum potential.")
+            st.info("This table provides a detailed comparison.")
 
             st.subheader("Detailed Analysis:")
 
             points_difference = total_points_owner1 - total_points_owner2
-            st.write(f"Current Point Difference: :orange[{points_difference:.2f}] ({selected_owner1} {'ahead' if points_difference > 0 else 'behind' if points_difference < 0 else 'tied'}).")
+            st.write(f"Current Point Difference: :orange[{points_difference:.1f}] ({selected_owner1} {'ahead' if points_difference > 0 else 'behind' if points_difference < 0 else 'tied'}).")
 
             avg_diff = avg_points_owner1 - avg_points_owner2
 
@@ -69,6 +72,22 @@ def show_chances(points_df: pd.DataFrame, match_data: pd.DataFrame, n_matches_pl
             realistic_final_diff = realistic_final_score_owner1 - realistic_final_score_owner2
 
             max_possible_diff = max_possible_owner1 - max_possible_owner2
+
+            st.subheader(f"Path to Victory for :red[{selected_owner2}]")
+            if total_points_owner2 < total_points_owner1 and remaining_matches > 0:
+                st.markdown(f"Here are a couple of scenarios where :red[{selected_owner2}] could potentially beat :blue[{selected_owner1}]:")
+                scenario1_gain = points_difference + 50  # Example: Need to gain current difference + 50
+                matches_needed_scenario1 = scenario1_gain / avg_points_owner2 if avg_points_owner2 > 0 else float('inf')
+                st.markdown(f"**Scenario 1 (High Scoring Match):** If :blue[{selected_owner1}] scores only their average in the remaining matches, :red[{selected_owner2}] needs to score approximately :orange[{scenario1_gain:.1f}] more points in total across the remaining :orange[{remaining_matches}] matches (about :orange[{scenario1_gain / remaining_matches:.1f}] per match) to overtake. This would require a performance significantly above your average (current avg: :orange[{avg_points_owner2:.1f}]).")
+
+                scenario2_owner1_low = max(0, avg_points_owner1 - 30) # Owner 1 scores below average
+                points_to_overtake_scenario2 = (total_points_owner1 + (scenario2_owner1_low * remaining_matches)) - total_points_owner2 + 20 # Overtake by 20
+                gain_needed_scenario2 = points_to_overtake_scenario2 / remaining_matches if remaining_matches > 0 else 0
+                st.markdown(f"**Scenario 2 (Opponent Underperforms):** If :blue[{selected_owner1}] scores significantly below their average (e.g., around :orange[{scenario2_owner1_low:.1f}] per match), :red[{selected_owner2}] would need to average around :orange[{gain_needed_scenario2:.1f}] points per match in the remaining games to take the lead.")
+            elif total_points_owner2 > total_points_owner1:
+                st.success(f":red[{selected_owner2}] is currently leading. Maintain the momentum!")
+            else:
+                st.info("It's a tie! Every point in the remaining matches will be crucial.")
 
             st.subheader("The Road Ahead:")
 
