@@ -113,7 +113,7 @@ Arshdeep Singh,PBKS,Pritesh,670,970,Bowl
 Lockie Feguson (RE),PBKS,Asif,199,350,Bowl
 Yash Thakur,PBKS,Lalit,38,190,Bowl
 Sanju Samson,RR,Johnson,699,1050,Opener
-Nitish Rana,RR,Umesh,475,830,All
+Nitish Rana (O),RR,Umesh,475,830,All
 Shimron Hetmyer,RR,Pritesh,498,200,Bat
 Yashasvi Jaiswal [VC],RR,Pritesh,1501.5,1550,Opener
 Dhruv Jurel,RR,Asif,547,440,Bat
@@ -132,7 +132,7 @@ Phil Salt [C],RCB,Somansh,897,1650,Opener
 Rajat Patidar [VC],RCB,Umesh,516,750,Bat
 Virat Kohli [VC],RCB,Pritam,1432.5,1150,Opener
 Jitesh Sharma,RCB,Wilfred,428,790,WK
-Devdutt Padikal,RCB,Mahesh,513,450,Bat
+Devdutt Padikal (O),RCB,Mahesh,513,450,Bat
 Liam Livingstone,RCB,Johnson,269,920,All
 Krunal Pandya,RCB,Johnson,690,610,All
 Tim David,RCB,Sanskar,478,320,Bat
@@ -141,7 +141,7 @@ Manoj Bhandage,RCB,Sanskar,5,100,All
 Rasikh Dar,RCB,Mahesh,47,100,Bowl
 Josh Hazelwoood,RCB,Pritesh,695,430,Bowl
 Nuwan Thushara,RCB,Umesh,0,200,Bowl
-Bhuvaneshwar Kumar,RCB,Lalit,517,810,Bowl
+Bhuvaneshwar Kumar (S),RCB,Lalit,517,810,Bowl
 Suyash Sharma,RCB,Wilfred,264,350,Bowl
 Yash Dayal,RCB,Asif,411,280,Bowl
 Abhinandan Singh,RCB,Asif,0,100,Bowl
@@ -184,3 +184,4 @@ Bonus,,Asif,20,,
 Bonus,,Pritam,20,,
 Bonus,,Mahesh,20,,
 Priyansh Arya (S),PBKS,Asif,149,100,Bat
+Bhuvaneshwar Kumar (S),RCB,Umesh,0,,Bowl
