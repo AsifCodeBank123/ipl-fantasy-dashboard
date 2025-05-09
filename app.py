@@ -30,7 +30,7 @@ st.set_page_config(layout="wide", page_title="HPL Fantasy Dashboard")
 st.header("🏏 :orange[HPL] Fantasy League Performance Dashboard", divider = "orange")
 
 # --- Inputs ---
-n_matches_played = 11
+n_matches_played = 12
 total_matches = 14
 
 # --- Captain and Vice-Captain selections for each owner ---
