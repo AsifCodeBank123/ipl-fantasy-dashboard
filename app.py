@@ -7,6 +7,7 @@ import re
 # --- Additional Imports for Live Scores ---
 import requests
 from bs4 import BeautifulSoup
+import streamlit.components.v1 as components
 
 from sections.owner_insights import show_owner_insights
 from sections.owners_performance import show_owners_performance
@@ -17,6 +18,7 @@ from sections.team_of_tournament import show_team
 from sections.player_impact import show_impact
 from sections.owner_rankings import show_rank
 from sections.qualification_chances import show_chances
+from config import n_matches_played, total_matches, captain_vc_dict
 
 
 if "match_input" not in st.session_state:
@@ -28,24 +30,6 @@ if "non_playing_players" not in st.session_state:
 # --- Page Setup ---
 st.set_page_config(layout="wide", page_title="HPL Fantasy Dashboard")
 st.header("🏏 :orange[HPL] Fantasy League Performance Dashboard", divider = "orange")
-
-# --- Inputs ---
-n_matches_played = 12
-total_matches = 14
-
-# --- Captain and Vice-Captain selections for each owner ---
-captain_vc_dict = {
-    "Mahesh": ("Jos Buttler [C]", "B. Sai Sudharsan [VC]"),
-    "Asif": ("Kuldeep Yadav [C]", "Pat Cummins [VC]"),
-    "Pritesh": ("Abhishek Sharma [C]", "Yashasvi Jaiswal [VC]"),
-    "Pritam": ("Suryakumar Yadav [C]", "Virat Kohli [VC]"),
-    "Lalit": ("Shreyas Iyer [C]", "Shubman Gill [VC]"),
-    "Umesh": ("Travis Head [C]", "Rajat Patidar [VC]"),
-    "Sanskar": ("Hardik Pandya [C]", "Nicholas Pooran [VC]"),
-    "Johnson": ("Sunil Naraine [C]", "Mitchell Starc [VC]"),
-    "Somansh": ("Phil Salt [C]","Rashid Khan [VC]"),
-    "Wilfred": ("KL Rahul [C]","Rachin Ravindra [VC]", )
-}
 
 
 match_data = pd.read_csv("match_schedule.csv")
@@ -84,6 +68,69 @@ match_df['DateTime'] = pd.to_datetime(match_df['DateTime'], format='%d-%b-%y %I:
 
 # --- Setup: Get available matches once ---
 available_matches_df = get_available_matches(match_df) # <--- Call it here
+
+def get_ruled_out_news_from_newsapi(api_key):
+    url = "https://newsapi.org/v2/everything"
+    params = {
+        "q": "IPL ruled out OR IPL injury OR IPL replacement",
+        "language": "en",
+        "sortBy": "publishedAt",
+        "pageSize": 6,
+        "apiKey": api_key
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        articles = response.json().get("articles", [])
+    except requests.RequestException as e:
+        return [f"⚠️ Failed to fetch news: {e}"]
+
+    news_items = []
+    for article in articles:
+        title = article["title"]
+        url = article["url"]
+        news_items.append((title, url))
+
+    return news_items
+
+# 🚨 News section
+st.subheader("🚨 Ruled Out News")
+
+api_key = st.secrets["newsapi"]["api_key"]
+news_items = get_ruled_out_news_from_newsapi(api_key)
+
+if news_items and isinstance(news_items[0], tuple):
+    news_html = ""
+    for title, url in news_items:
+        news_html += f"""
+        <div style="margin-bottom: 15px;">
+            <strong style="color: #d9534f;">📰 {title}</strong><br>
+            <a href="{url}" target="_blank" style="font-size: 0.9em; color: #007acc;">Read more</a>
+        </div>
+        """
+
+    wrapper_html = f"""
+    <div style="
+        background-color: #e3f2fd;
+        border-left: 6px solid #f44336;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+        margin-top: 10px;
+    ">
+        {news_html}
+    </div>
+    """
+
+    # Render properly with full HTML support
+    components.html(wrapper_html, height=400, scrolling=True)
+
+elif news_items and isinstance(news_items[0], str):
+    st.warning(news_items[0])
+else:
+    st.info("No breaking injury or replacement news right now.")
+
 
 def fetch_live_matches():
     global finished_matches
