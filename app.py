@@ -102,11 +102,16 @@ news_items = get_ruled_out_news_from_newsapi(api_key)
 
 if news_items and isinstance(news_items[0], tuple):
     news_html = ""
-    for title, url in news_items:
+    for idx, (title, url) in enumerate(news_items):
+        is_last = (idx == len(news_items) - 1)
+        border_style = "" if is_last else "border-bottom: 1px dashed #ddd; padding-bottom: 10px;"
+
         news_html += f"""
-        <div style="margin-bottom: 20px;border-bottom: 1px dashed #ddd; padding-bottom: 10px;">
+        <div style="margin-bottom: 20px; {border_style}">
             <strong style="color: #d9534f; font-size: 0.80em;">📰 {title}</strong><br>
-            """
+    
+        </div>
+        """
 
     wrapper_html = f"""
     <div style="
