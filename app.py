@@ -95,7 +95,7 @@ def get_ruled_out_news_from_newsapi(api_key):
     return news_items
 
 # 🚨 News section
-st.subheader("🚨 Ruled Out News")
+st.subheader("🚨 Ruled Out/Replacement News")
 
 api_key = st.secrets["newsapi"]["api_key"]
 news_items = get_ruled_out_news_from_newsapi(api_key)
