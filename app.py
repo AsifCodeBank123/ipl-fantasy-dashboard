@@ -75,7 +75,7 @@ def get_ruled_out_news_from_newsapi(api_key):
         "q": "IPL ruled out OR IPL injury OR IPL replacement",
         "language": "en",
         "sortBy": "publishedAt",
-        "pageSize": 6,
+        "pageSize": 4,
         "apiKey": api_key
     }
 
