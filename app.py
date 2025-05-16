@@ -105,10 +105,9 @@ if news_items and isinstance(news_items[0], tuple):
     for title, url in news_items:
         news_html += f"""
         <div style="margin-bottom: 15px;">
-            <strong style="color: #d9534f;">📰 {title}</strong><br>
-            <a href="{url}" target="_blank" style="font-size: 0.5em; color: #007acc;">Read more</a>
-        </div>
-        """
+            <strong style="color: #d9534f; font-size: 0.80em;">📰 {title}</strong><br>
+            <a href="{url}" target="_blank" style="font-size: 0.6em; color: #007acc;">Read more</a>
+           """
 
     wrapper_html = f"""
     <div style="
