@@ -97,7 +97,7 @@ def get_ruled_out_news_from_newsapi(api_key):
 
 
 # 🚨 News section
-st.subheader("🚨 Ruled Out News")
+st.subheader("🚨 Ruled Out/Replacement News")
 
 with st.expander("Expand"):
     try:
