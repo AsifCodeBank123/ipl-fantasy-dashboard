@@ -84,18 +84,16 @@ def get_ruled_out_news_from_newsapi(api_key):
 
     try:
         response = requests.get(url, params=params, timeout=10)
+        if response.status_code == 429:
+            return ["⚠️ You've hit the NewsAPI rate limit. Try again in a few minutes."]
         response.raise_for_status()
         articles = response.json().get("articles", [])
+    except requests.HTTPError as http_err:
+        return [f"⚠️ Failed to fetch news. Error: {http_err.response.status_code}"]
     except requests.RequestException as e:
-        return [f"⚠️ Failed to fetch news: {e}"]
+        return ["⚠️ Could not connect to NewsAPI. Please check your internet or try again later."]
 
-    news_items = []
-    for article in articles:
-        title = article["title"]
-        url = article["url"]
-        news_items.append((title, url))
-
-    return news_items
+    return [(article["title"], article["url"]) for article in articles]
 
 
 # 🚨 News section
