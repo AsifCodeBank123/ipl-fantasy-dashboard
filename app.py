@@ -69,6 +69,9 @@ match_df['DateTime'] = pd.to_datetime(match_df['DateTime'], format='%d-%b-%y %I:
 # --- Setup: Get available matches once ---
 available_matches_df = get_available_matches(match_df) # <--- Call it here
 
+
+# ✅ Cache news results for 10 minutes to avoid hitting NewsAPI rate limits
+@st.cache_data(ttl=600)
 def get_ruled_out_news_from_newsapi(api_key):
     url = "https://newsapi.org/v2/everything"
     params = {
@@ -94,20 +97,24 @@ def get_ruled_out_news_from_newsapi(api_key):
 
     return news_items
 
+
 # 🚨 News section
 st.subheader("🚨 Ruled Out News")
 
 with st.expander("Expand"):
-    api_key = st.secrets["newsapi"]["api_key"]
-    news_items = get_ruled_out_news_from_newsapi(api_key)
+    try:
+        api_key = st.secrets["newsapi"]["api_key"]
+        news_items = get_ruled_out_news_from_newsapi(api_key)
+    except Exception as e:
+        news_items = [f"⚠️ Could not load IPL news: {e}"]
 
     if news_items and isinstance(news_items[0], tuple):
         news_html = ""
         for title, url in news_items:
             news_html += f"""
-            <div style="margin-bottom: 15px;">
-                <strong style="color: #d9534f;">📰 {title}</strong><br>
-                <a href="{url}" target="_blank" style="font-size: 0.9em; color: #007acc;">Read more</a>
+            <div style="margin-bottom: 20px; border-bottom: 1px dashed #ddd; padding-bottom: 10px;">
+                <strong style="color: #d9534f; font-size: 0.85em;">📰 {title}</strong><br>
+                <a href="{url}" target="_blank" style="font-size: 0.75em; color: #007acc;">Read more</a>
             </div>
             """
 
@@ -119,13 +126,14 @@ with st.expander("Expand"):
             border-radius: 12px;
             box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
             margin-top: 10px;
+            max-height: 400px;
+            overflow-y: auto;
         ">
             {news_html}
         </div>
         """
 
-        # Render properly with full HTML support
-        components.html(wrapper_html, height=400, scrolling=True)
+        components.html(wrapper_html, height=450, scrolling=True)
 
     elif news_items and isinstance(news_items[0], str):
         st.warning(news_items[0])
