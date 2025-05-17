@@ -75,7 +75,7 @@ def get_ruled_out_news_from_newsapi(api_key):
         "q": "IPL ruled out OR IPL injury OR IPL replacement",
         "language": "en",
         "sortBy": "publishedAt",
-        "pageSize": 6,
+        "pageSize": 10,
         "apiKey": api_key
     }
 
@@ -97,39 +97,40 @@ def get_ruled_out_news_from_newsapi(api_key):
 # 🚨 News section
 st.subheader("🚨 Ruled Out News")
 
-api_key = st.secrets["newsapi"]["api_key"]
-news_items = get_ruled_out_news_from_newsapi(api_key)
+with st.expander("Expand"):
+    api_key = st.secrets["newsapi"]["api_key"]
+    news_items = get_ruled_out_news_from_newsapi(api_key)
 
-if news_items and isinstance(news_items[0], tuple):
-    news_html = ""
-    for title, url in news_items:
-        news_html += f"""
-        <div style="margin-bottom: 15px;">
-            <strong style="color: #d9534f;">📰 {title}</strong><br>
-            <a href="{url}" target="_blank" style="font-size: 0.9em; color: #007acc;">Read more</a>
+    if news_items and isinstance(news_items[0], tuple):
+        news_html = ""
+        for title, url in news_items:
+            news_html += f"""
+            <div style="margin-bottom: 15px;">
+                <strong style="color: #d9534f;">📰 {title}</strong><br>
+                <a href="{url}" target="_blank" style="font-size: 0.9em; color: #007acc;">Read more</a>
+            </div>
+            """
+
+        wrapper_html = f"""
+        <div style="
+            background-color: #e3f2fd;
+            border-left: 6px solid #f44336;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+            margin-top: 10px;
+        ">
+            {news_html}
         </div>
         """
 
-    wrapper_html = f"""
-    <div style="
-        background-color: #e3f2fd;
-        border-left: 6px solid #f44336;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
-        margin-top: 10px;
-    ">
-        {news_html}
-    </div>
-    """
+        # Render properly with full HTML support
+        components.html(wrapper_html, height=400, scrolling=True)
 
-    # Render properly with full HTML support
-    components.html(wrapper_html, height=400, scrolling=True)
-
-elif news_items and isinstance(news_items[0], str):
-    st.warning(news_items[0])
-else:
-    st.info("No breaking injury or replacement news right now.")
+    elif news_items and isinstance(news_items[0], str):
+        st.warning(news_items[0])
+    else:
+        st.info("No breaking injury or replacement news right now.")
 
 
 def fetch_live_matches():
