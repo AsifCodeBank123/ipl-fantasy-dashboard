@@ -1,5 +1,5 @@
 # config.py
-n_matches_played = 13
+n_matches_played = 14
 total_matches = 14
 captain_vc_dict = {
     "Mahesh": ("Jos Buttler [C]", "B. Sai Sudharsan [VC]"),
