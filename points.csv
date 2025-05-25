@@ -16,21 +16,21 @@ Mukesh Choudhary,CSK,Pritam,44,220,Bowl
 Noor Ahmad (S),CSK,Lalit,817,200,Bowl
 Shreyas Gopal,CSK,Pritam,0,100,Bowl
 Matheesha Pathirana,CSK,Sanskar,474,920,Bowl
-KL Rahul [C],DC,Wilfred,1682,2050,WK
-Faf Du Plessis,DC,Umesh,369,1050,Opener
-Karun Nair,DC,Pritesh,370,200,Opener
-Sameer Rizvi,DC,Pritam,137,100,All
+KL Rahul [C],DC,Wilfred,1836,2050,WK
+Faf Du Plessis,DC,Umesh,422,1050,Opener
+Karun Nair,DC,Pritesh,458,200,Opener
+Sameer Rizvi,DC,Pritam,263,100,All
 Abhishek Porel,DC,Lalit,635,200,Opener
-Ashutosh Sharma,DC,Pritesh,436,310,All
+Ashutosh Sharma,DC,Pritesh,440,310,All
 Darshan Nalkande,DC,Johnson,0,100,All
-Tristan Stubbs,DC,Somansh,611,400,Bat
+Tristan Stubbs,DC,Somansh,681,400,Bat
 Axar Patel,DC,Sanskar,1023.5,1850,All
 Mitchell Starc (O),DC,Johnson,707,780,Bowl
 T Natarajan (RE),DC,Johnson,0,570,Bowl
-Kuldeep Yadav [C],DC,Asif,672,850,Bowl
+Kuldeep Yadav [C],DC,Asif,814,850,Bowl
 Jake Fraser (O),DC,Mahesh,143,950,Bat
 Dushmantha Chameera,DC,Lalit,168,200,Bowl
-Mukesh Kumar,DC,Asif,484,340,Bowl
+Mukesh Kumar,DC,Asif,521,340,Bowl
 Shubman Gill [VC],GT,Lalit,1875,1900,Opener
 Jos Buttler [C],GT,Mahesh,2262,950,WK
 Kumar Kushagra,GT,Pritam,0,100,WK
@@ -96,20 +96,20 @@ Naman Dhir,MI,Mahesh,511,310,All
 Mujeeb Ur Rahman,MI,Johnson,27,300,Bowl
 Jasprit Bumrah,MI,Pritam,730,960,Bowl
 Reece Topley,MI,Asif,0,310,Bowl
-Shreyas Iyer [C],PBKS,Lalit,1754,1750,Bat
-Nehal Wadera,PBKS,Somansh,603,560,Bat
-Josh Inglis,PBKS,Pritam,250,360,Bat
-Prabhsimran Singh,PBKS,Lalit,968,590,Opener
-Marcus Stoinis,PBKS,Wilfred,194,700,Bat
+Shreyas Iyer [C],PBKS,Lalit,1956,1750,Bat
+Nehal Wadera,PBKS,Somansh,627,560,Bat
+Josh Inglis,PBKS,Pritam,320,360,Bat
+Prabhsimran Singh,PBKS,Lalit,1030,590,Opener
+Marcus Stoinis,PBKS,Wilfred,289,700,Bat
 Glen Maxwell (O),PBKS,Asif,283,1200,All
-Shashank Singh,PBKS,Umesh,572,510,Bat
-Marco Jansen,PBKS,Johnson,736,620,All
+Shashank Singh,PBKS,Umesh,595,510,Bat
+Marco Jansen,PBKS,Johnson,774,620,All
 Azmatullah Omarzai (RE),PBKS,Somansh,31,510,All
-Priyansh Arya (S),PBKS,Pritesh,788,100,Opener
+Priyansh Arya (S),PBKS,Pritesh,810,100,Opener
 Suryansh Shedge,PBKS,Somansh,30,100,All
 Yuzvendra Chahal,PBKS,Mahesh,562,900,Bowl
-Harpreet Brar,PBKS,Sanskar,276,400,Bowl
-Arshdeep Singh,PBKS,Pritesh,673,970,Bowl
+Harpreet Brar,PBKS,Sanskar,364,400,Bowl
+Arshdeep Singh,PBKS,Pritesh,691,970,Bowl
 Lockie Feguson (RE),PBKS,Asif,199,350,Bowl
 Yash Thakur,PBKS,Lalit,38,190,Bowl
 Sanju Samson,RR,Johnson,824,1050,Opener
@@ -166,8 +166,8 @@ Noor Ahmad (S),CSK,Umesh,442,200,Bowl
 Anshul Kamboj (S),CSK,Asif,177,100,All
 Sai Kishore (S),GT,Wilfred,248,270,All
 Shaik Rasheed (N),CSK,Umesh,82,190,Opener
-Mohit Sharma (N),DC,Mahesh,0,260,Bowl
-Vipraj Nigam (N),DC,Johnson,298,460,All
+Mohit Sharma (N),DC,Mahesh,13,260,Bowl
+Vipraj Nigam (N),DC,Johnson,375,460,All
 Sherfane Rutherford (N),GT,Asif,152,500,Bat
 Digvesh Singh (N),LSG,Sanskar,215,420,Bowl
 Ashwani Kumar (N),MI,Lalit,109,200,Bowl
@@ -183,5 +183,5 @@ Rovman Powell (O),KKR,Pritam,25,200,Bat
 Bonus,,Asif,20,,
 Bonus,,Pritam,20,,
 Bonus,,Mahesh,20,,
-Priyansh Arya (S),PBKS,Asif,22,100,Bat
+Priyansh Arya (S),PBKS,Asif,44,100,Bat
 Bhuvaneshwar Kumar (S),RCB,Umesh,52,,Bowl
