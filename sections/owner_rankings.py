@@ -122,12 +122,66 @@ def show_rank(df: pd.DataFrame, df_diff: pd.DataFrame, points_df: pd.DataFrame, 
             arrow_map = dict(zip(temp_df["Owners"], temp_df["Styled Arrow"]))
             merged_df["Owners"] = merged_df["Owners"].apply(lambda x: f'{x} {arrow_map.get(x, "")}')
 
+            # --- Points Gained Since Last Update ---
+            latest_scores = dict(zip(df["Owners"], df[latest_col]))
+            prev_scores = dict(zip(df["Owners"], df[prev_col]))
+            points_gained = {owner: latest_scores[owner] - prev_scores[owner] for owner in df["Owners"]}
+            merged_df["Points Gained"] = merged_df["Owners"].apply(lambda x: points_gained.get(x.split(" ")[0], 0))  # remove emoji if needed
+
+            # --- Predict Final Tournament Score ---
+
+            # Define remaining league match teams and qualified playoff teams
+            remaining_league_teams = ["PBKS", "MI", "LSG", "RCB"]
+            playoff_teams = ["RCB", "MI", "PBKS", "GT"]
+
+            unavailable_playoff_players = [
+                "Jos Buttler [C]", "Ryan Rickelton", "Will Jacks",
+                "Marco Jansen", "Phil Salt [C]", "Tim David"
+]
+
+            def get_avg_points_for_teams(owner, teams, exclude_players=None):
+                players = points_df[
+                    (points_df["Owner"] == owner) &
+                    (points_df["Team"].isin(teams)) &
+                    (~points_df["Player Name"].str.contains(exclusion_pattern, regex=True)) &
+                    (~points_df["Player Name"].isin(non_playing_players))
+                ]
+                if exclude_players:
+                    players = players[~players["Player Name"].isin(exclude_players)]
+                return players["Total Points"].sum() / n_matches_played if not players.empty else 0
+
+
+            league_projected_points = []
+            playoff_projected_points = []
+
+            for owner in merged_df["Owners"]:
+                owner_clean = owner.split(" 🔻")[0].split(" 🔥")[0].strip()
+
+                league_avg = get_avg_points_for_teams(owner_clean, remaining_league_teams)
+                playoff_avg = get_avg_points_for_teams(owner_clean, playoff_teams, exclude_players=unavailable_playoff_players)
+
+                league_points = league_avg * 2
+                playoff_points = playoff_avg * 2
+
+                league_projected_points.append(round(league_points))
+                playoff_projected_points.append(round(playoff_points))
+
+
+            merged_df["Projected League Pts"] = league_projected_points
+            merged_df["Projected Playoff Pts"] = playoff_projected_points
+            merged_df["Predicted Final Tournament Score"] = (
+                merged_df["Current Score"] + merged_df["Projected League Pts"] + merged_df["Projected Playoff Pts"]
+            )
+            + merged_df["Projected Playoff Pts"]
+
+
+
             # --- Final Column Reordering ---
             ordered_cols = [
                 "Status", "Rank", "Owners", "Current Score",
-                "Next Rank Delta", "1st Rank Delta",
+                "Next Rank Delta", "1st Rank Delta", "Points Gained",
                 "Predicted Next Score", "Change (%)",
-                "Players in Next Match", "Top 4 Appearances", "Winning Chances (%)"
+                "Players in Next Match", "Top 4 Appearances", "Winning Chances (%)", "Predicted Final Tournament Score"
             ]
             merged_df = merged_df[ordered_cols]
 
