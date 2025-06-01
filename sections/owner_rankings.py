@@ -172,7 +172,7 @@ def show_rank(df: pd.DataFrame, df_diff: pd.DataFrame, points_df: pd.DataFrame, 
             merged_df["Predicted Final Tournament Score"] = (
                 merged_df["Current Score"]  + merged_df["Projected Playoff Pts"]
             ) #+ merged_df["Projected League Pts"]
-            + merged_df["Projected Playoff Pts"]
+            #+ merged_df["Projected Playoff Pts"]
 
 
 
