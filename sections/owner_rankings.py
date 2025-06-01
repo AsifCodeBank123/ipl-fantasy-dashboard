@@ -167,11 +167,11 @@ def show_rank(df: pd.DataFrame, df_diff: pd.DataFrame, points_df: pd.DataFrame, 
                 playoff_projected_points.append(round(playoff_points))
 
 
-            merged_df["Projected League Pts"] = league_projected_points
+            #merged_df["Projected League Pts"] = league_projected_points
             merged_df["Projected Playoff Pts"] = playoff_projected_points
             merged_df["Predicted Final Tournament Score"] = (
-                merged_df["Current Score"] + merged_df["Projected League Pts"] + merged_df["Projected Playoff Pts"]
-            )
+                merged_df["Current Score"]  + merged_df["Projected Playoff Pts"]
+            ) #+ merged_df["Projected League Pts"]
             + merged_df["Projected Playoff Pts"]
 
 
