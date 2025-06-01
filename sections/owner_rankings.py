@@ -136,7 +136,7 @@ def show_rank(df: pd.DataFrame, df_diff: pd.DataFrame, points_df: pd.DataFrame, 
 
             unavailable_playoff_players = [
                 "Ryan Rickelton", "Will Jacks",
-                "Marco Jansen", "Tim David"
+                "Marco Jansen", "Tim David",
 ]
 
             def get_avg_points_for_teams(owner, teams, exclude_players=None):
@@ -151,7 +151,7 @@ def show_rank(df: pd.DataFrame, df_diff: pd.DataFrame, points_df: pd.DataFrame, 
                 return players["Total Points"].sum() / n_matches_played if not players.empty else 0
 
 
-            league_projected_points = []
+            #league_projected_points = []
             playoff_projected_points = []
 
             for owner in merged_df["Owners"]:
