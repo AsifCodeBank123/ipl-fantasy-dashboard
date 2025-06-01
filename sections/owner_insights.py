@@ -22,9 +22,27 @@ def show_owner_insights(points_df):
     selected_owner = st.selectbox("Select an Owner", sorted(points_df["Owner"].unique()))
     owner_df = points_df[points_df["Owner"] == selected_owner].copy()
 
+    # Calculate team-wise and role-wise breakdowns
     teamwise_df = owner_df.groupby("Team")["Total Points"].sum().reset_index()
     owner_role_points = owner_df.groupby("Playing Role")["Total Points"].sum().reset_index()
-    owner_display_df = owner_df[["Player Name", "Team", "Total Points", "Player Value", "Playing Role"]].sort_values(by="Total Points", ascending=False)
+
+    # Add Avg Points column (handle "NA" safely)
+    def compute_avg(row):
+        try:
+            if row["Matches Played"] == "NA":
+                return "NA"
+            else:
+                return round(row["Total Points"] / float(row["Matches Played"]), 1)
+        except:
+            return "NA"
+
+    owner_df["Avg Points"] = owner_df.apply(compute_avg, axis=1)
+
+    # Display table with new column
+    owner_display_df = owner_df[["Player Name", "Team", "Total Points", "Matches Played", "Avg Points", "Player Value", "Playing Role"]]
+    owner_display_df = owner_display_df.sort_values(by="Total Points", ascending=False)
+
+
 
     tab1, tab2, tab3 = st.tabs(["Player Contributions (Pie)", "Team Contributions (Bar)", "Role-based Points (Bar)"])
 

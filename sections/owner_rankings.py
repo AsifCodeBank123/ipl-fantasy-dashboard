@@ -131,12 +131,12 @@ def show_rank(df: pd.DataFrame, df_diff: pd.DataFrame, points_df: pd.DataFrame, 
             # --- Predict Final Tournament Score ---
 
             # Define remaining league match teams and qualified playoff teams
-            remaining_league_teams = ["PBKS", "MI", "LSG", "RCB"]
-            playoff_teams = ["RCB", "MI", "PBKS", "GT"]
+            #remaining_league_teams = ["PBKS", "MI", "LSG", "RCB"]
+            playoff_teams = ["RCB", "MI", "PBKS"]
 
             unavailable_playoff_players = [
-                "Jos Buttler [C]", "Ryan Rickelton", "Will Jacks",
-                "Marco Jansen", "Phil Salt [C]", "Tim David"
+                "Ryan Rickelton", "Will Jacks",
+                "Marco Jansen", "Tim David"
 ]
 
             def get_avg_points_for_teams(owner, teams, exclude_players=None):
@@ -157,13 +157,13 @@ def show_rank(df: pd.DataFrame, df_diff: pd.DataFrame, points_df: pd.DataFrame, 
             for owner in merged_df["Owners"]:
                 owner_clean = owner.split(" 🔻")[0].split(" 🔥")[0].strip()
 
-                league_avg = get_avg_points_for_teams(owner_clean, remaining_league_teams)
+                #league_avg = get_avg_points_for_teams(owner_clean, remaining_league_teams)
                 playoff_avg = get_avg_points_for_teams(owner_clean, playoff_teams, exclude_players=unavailable_playoff_players)
 
-                league_points = league_avg * 2
+                #league_points = league_avg * 2
                 playoff_points = playoff_avg * 2
 
-                league_projected_points.append(round(league_points))
+                #league_projected_points.append(round(league_points))
                 playoff_projected_points.append(round(playoff_points))
 
 
