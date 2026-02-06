@@ -35,42 +35,42 @@ st.set_page_config(layout="wide", page_title="HPL Fantasy Dashboard")
 st.header("🏏 :orange[HPL] Fantasy League Performance Dashboard", divider = "orange")
 
 
-match_data = pd.read_csv("match_schedule.csv")
-# Convert match data into a DataFrame for easier manipulation
-match_df = pd.DataFrame(match_data, columns=["Date", "Time", "Match"])
+# match_data = pd.read_csv("match_schedule.csv")
+# # Convert match data into a DataFrame for easier manipulation
+# match_df = pd.DataFrame(match_data, columns=["Date", "Time", "Match"])
 
-# Extract team codes from Match column
-scheduled_teams = set()
-for match in match_df["Match"]:
-    teams = match.split(" vs ")
-    scheduled_teams.update(teams)
+# # Extract team codes from Match column
+# scheduled_teams = set()
+# for match in match_df["Match"]:
+#     teams = match.split(" vs ")
+#     scheduled_teams.update(teams)
 
 
-# --- Maintain a finished matches set globally ---
-finished_matches = set()
+# # --- Maintain a finished matches set globally ---
+# finished_matches = set()
 
-# --- Helper function to get available matches ---
-def get_available_matches(match_df):
-    ist = pytz.timezone("Asia/Kolkata")
-    current_time = datetime.now(ist)  # Move this inside
-    match_df = match_df.copy()
-    match_df["MatchStartWindow"] = match_df["DateTime"] - timedelta(minutes=30)
-    match_df["MatchEndWindow"] = match_df["DateTime"] + timedelta(hours=4)
+# # --- Helper function to get available matches ---
+# def get_available_matches(match_df):
+#     ist = pytz.timezone("Asia/Kolkata")
+#     current_time = datetime.now(ist)  # Move this inside
+#     match_df = match_df.copy()
+#     match_df["MatchStartWindow"] = match_df["DateTime"] - timedelta(minutes=30)
+#     match_df["MatchEndWindow"] = match_df["DateTime"] + timedelta(hours=4)
 
-    available_matches_df = match_df[
-        ((current_time >= match_df["MatchStartWindow"]) & (current_time <= match_df["MatchEndWindow"])) |
-        (match_df["DateTime"] > current_time)
-    ].copy()
+#     available_matches_df = match_df[
+#         ((current_time >= match_df["MatchStartWindow"]) & (current_time <= match_df["MatchEndWindow"])) |
+#         (match_df["DateTime"] > current_time)
+#     ].copy()
 
-    available_matches_df = available_matches_df.sort_values("DateTime")
-    return available_matches_df
+#     available_matches_df = available_matches_df.sort_values("DateTime")
+#     return available_matches_df
 
-# Combine Date and Time into a single DateTime column
-match_df['DateTime'] = match_df['Date'] + ' ' + match_df['Time']
-match_df['DateTime'] = pd.to_datetime(match_df['DateTime'], format='%d-%b-%y %I:%M %p').dt.tz_localize("Asia/Kolkata")
+# # Combine Date and Time into a single DateTime column
+# match_df['DateTime'] = match_df['Date'] + ' ' + match_df['Time']
+# match_df['DateTime'] = pd.to_datetime(match_df['DateTime'], format='%d-%b-%y %I:%M %p').dt.tz_localize("Asia/Kolkata")
 
-# --- Setup: Get available matches once ---
-available_matches_df = get_available_matches(match_df) # <--- Call it here
+# # --- Setup: Get available matches once ---
+# available_matches_df = get_available_matches(match_df) # <--- Call it here
 
 
 # ✅ Cache news results for 10 minutes to avoid hitting NewsAPI rate limits
@@ -78,7 +78,7 @@ available_matches_df = get_available_matches(match_df) # <--- Call it here
 def get_ruled_out_news_from_newsapi(api_key):
     url = "https://newsapi.org/v2/everything"
     params = {
-        "q": "IPL ruled out OR IPL injury OR IPL replacement",
+        "q": "T20 ruled out OR T20 injury OR T20 replacement",
         "language": "en",
         "sortBy": "publishedAt",
         "pageSize": 10,
@@ -142,97 +142,97 @@ with st.expander("Expand"):
         st.info("No breaking injury or replacement news right now.")
 
 
-def fetch_live_matches():
-    global finished_matches
+# def fetch_live_matches():
+#     global finished_matches
 
-    try:
-        link = "https://www.cricbuzz.com/cricket-match/live-scores"
-        source = requests.get(link, timeout=5).text
-        page = BeautifulSoup(source, "lxml")
+#     try:
+#         link = "https://www.cricbuzz.com/cricket-match/live-scores"
+#         source = requests.get(link, timeout=5).text
+#         page = BeautifulSoup(source, "lxml")
 
-        main_section = page.find("div", class_="cb-col cb-col-100 cb-bg-white")
-        matches = main_section.find_all("div", class_="cb-scr-wll-chvrn cb-lv-scrs-col")
+#         main_section = page.find("div", class_="cb-col cb-col-100 cb-bg-white")
+#         matches = main_section.find_all("div", class_="cb-scr-wll-chvrn cb-lv-scrs-col")
 
-        live_matches = []
+#         live_matches = []
 
-        for match in matches:
-            match_text = match.text.strip()
+#         for match in matches:
+#             match_text = match.text.strip()
 
-            # Attempt to split score and status
-            if " - " in match_text:
-                score_part, status_part = match_text.split(" - ", 1)
-            else:
-                score_part, status_part = match_text, ""
+#             # Attempt to split score and status
+#             if " - " in match_text:
+#                 score_part, status_part = match_text.split(" - ", 1)
+#             else:
+#                 score_part, status_part = match_text, ""
 
-            # Check if match is finished
-            if "won" in status_part.lower():
-                # Mark this match as finished
-                finished_matches.add(score_part.strip())
-                continue  # Skip fetching finished match
+#             # Check if match is finished
+#             if "won" in status_part.lower():
+#                 # Mark this match as finished
+#                 finished_matches.add(score_part.strip())
+#                 continue  # Skip fetching finished match
 
-            # Check against available matches
-            for scheduled_match in available_matches_df["Match"]:
-                teams = scheduled_match.split(" vs ")
-                if any(team in match_text for team in teams):
-                    if scheduled_match not in finished_matches:
-                        live_matches.append(match_text)
-                    break   # Once matched, no need to check further
+#             # Check against available matches
+#             for scheduled_match in available_matches_df["Match"]:
+#                 teams = scheduled_match.split(" vs ")
+#                 if any(team in match_text for team in teams):
+#                     if scheduled_match not in finished_matches:
+#                         live_matches.append(match_text)
+#                     break   # Once matched, no need to check further
 
-        return live_matches
+#         return live_matches
 
-    except Exception as e:
-        return [f"⚠️ Failed to load live matches: {str(e)}"]
+#     except Exception as e:
+#         return [f"⚠️ Failed to load live matches: {str(e)}"]
 
 
-def format_live_match(match_text):
+# def format_live_match(match_text):
 
-    result = ""
+#     result = ""
 
-    # Remove leading ℹ️ if present
-    match_text = match_text.replace("ℹ️", "").strip()
+#     # Remove leading ℹ️ if present
+#     match_text = match_text.replace("ℹ️", "").strip()
 
-    # 1. Find all "TEAM + SCORE" like MI12-0 (1.3 Ovs)
-    team_score_pattern = r'([A-Z]{2,4})(\d+-\d+ \(\d+(\.\d+)? Ovs\))'
-    matches = re.findall(team_score_pattern, match_text)
+#     # 1. Find all "TEAM + SCORE" like MI12-0 (1.3 Ovs)
+#     team_score_pattern = r'([A-Z]{2,4})(\d+-\d+ \(\d+(\.\d+)? Ovs\))'
+#     matches = re.findall(team_score_pattern, match_text)
 
-    for match in matches:
-        team_code, score, _ = match
-        result += f"🏏 **{team_code}** - {score}\n"
+#     for match in matches:
+#         team_code, score, _ = match
+#         result += f"🏏 **{team_code}** - {score}\n"
 
-    # Remove matched part from original text
-    for match in matches:
-        full_match = "".join(match[:-1])  # exclude last group (decimal part)
-        match_text = match_text.replace(full_match, "").strip()
+#     # Remove matched part from original text
+#     for match in matches:
+#         full_match = "".join(match[:-1])  # exclude last group (decimal part)
+#         match_text = match_text.replace(full_match, "").strip()
 
-    # Now look for any TEAM codes separately (like LSG)
-    words = match_text.split()
+#     # Now look for any TEAM codes separately (like LSG)
+#     words = match_text.split()
 
-    for word in words:
-        if word in scheduled_teams:
-            result += f"🏏 **{word}**\n"
-            match_text = match_text.replace(word, "").strip()
+#     for word in words:
+#         if word in scheduled_teams:
+#             result += f"🏏 **{word}**\n"
+#             match_text = match_text.replace(word, "").strip()
 
-    # 3. Remaining text is status update
-    if match_text.strip():
-        result += f"\nℹ️ {match_text.strip()}\n"
+#     # 3. Remaining text is status update
+#     if match_text.strip():
+#         result += f"\nℹ️ {match_text.strip()}\n"
 
-    return result
+#     return result
 
-# --- Streamlit Display ---
-st.markdown("### 📺 Live Score")
-st.write("")
+# # --- Streamlit Display ---
+# st.markdown("### 📺 Live Score")
+# st.write("")
 
-live_scores = fetch_live_matches()
+# live_scores = fetch_live_matches()
 
-if live_scores:
-    for match in live_scores:
-        formatted_text = format_live_match(match)
-        st.markdown(formatted_text)  # <-- USE MARKDOWN for line breaks!
-        st.write("")  # Space between matches
-else:
-    st.info("No live matches at the moment.")
+# if live_scores:
+#     for match in live_scores:
+#         formatted_text = format_live_match(match)
+#         st.markdown(formatted_text)  # <-- USE MARKDOWN for line breaks!
+#         st.write("")  # Space between matches
+# else:
+#     st.info("No live matches at the moment.")
 
-st.write("")
+# st.write("")
 
 # --- Load Data ---
 df = pd.read_csv("owners_performance_updates.csv")
@@ -279,28 +279,28 @@ st.session_state.captain_vc_dict = captain_vc_dict
 # Sidebar navigation
 with st.sidebar.expander("📂 Select Section", expanded=True):
     section=st.radio("",[
-        "Owner Rankings: Current vs Predicted",
-        "Player Impact - Next Match Focus",
-        "Team vs Team Comparison",
-        "Team of the Tournament",
+        # "Owner Rankings: Current vs Predicted",
+        # "Player Impact - Next Match Focus",
+        # "Team vs Team Comparison",
+        # "Team of the Tournament",
         "Owner Insights & Breakdown",
         "Owners Performance",
         "Qualification Chances",
-        "Best/Worst Awards"
+        # "Best/Worst Awards"
     ])
 
-if section == "Owner Rankings: Current vs Predicted":
-    show_rank(df, df_diff, points_df, available_matches_df, n_matches_played, total_matches, st.session_state.top4_count)
+# if section == "Owner Rankings: Current vs Predicted":
+#     show_rank(df, df_diff, points_df, available_matches_df, n_matches_played, total_matches, st.session_state.top4_count)
 
 
-elif section == "Player Impact - Next Match Focus":
-    show_impact(points_df, available_matches_df, n_matches_played)
+# elif section == "Player Impact - Next Match Focus":
+#     show_impact(points_df, available_matches_df, n_matches_played)
 
-elif section == "Team vs Team Comparison":
-    show_comparison(points_df, df)
+# elif section == "Team vs Team Comparison":
+#     show_comparison(points_df, df)
 
 
-elif section == "Team of the Tournament":
+# elif section == "Team of the Tournament":
     show_team(points_df)
 
 # elif section == "Captain/Vice-Captain Impact Analysis":
@@ -357,15 +357,15 @@ elif section == "Team of the Tournament":
 
 # elif section == "Players to Watch Out for in Mini Auction":
 #     mini_auction(points_df)
-elif section == "Best/Worst Awards":
-     show_awards(points_df)
+# elif section == "Best/Worst Awards":
+#      show_awards(points_df)
 
 
-elif section == "Qualification Chances":
-    show_chances(points_df, match_data, n_matches_played)
+# elif section == "Qualification Chances":
+#     show_chances(points_df, match_data, n_matches_played)
 
 
-elif section == "Owner Insights & Breakdown":
+if section == "Owner Insights & Breakdown":
     show_owner_insights(points_df)
 
 elif section == "Owners Performance":
