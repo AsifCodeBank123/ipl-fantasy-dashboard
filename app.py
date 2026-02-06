@@ -74,72 +74,72 @@ st.header("🏏 :orange[HPL] Fantasy League Performance Dashboard", divider = "o
 
 
 # ✅ Cache news results for 10 minutes to avoid hitting NewsAPI rate limits
-@st.cache_data(ttl=600)
-def get_ruled_out_news_from_newsapi(api_key):
-    url = "https://newsapi.org/v2/everything"
-    params = {
-        "q": "T20 ruled out OR T20 injury OR T20 replacement",
-        "language": "en",
-        "sortBy": "publishedAt",
-        "pageSize": 10,
-        "apiKey": api_key
-    }
+# @st.cache_data(ttl=600)
+# def get_ruled_out_news_from_newsapi(api_key):
+#     url = "https://newsapi.org/v2/everything"
+#     params = {
+#         "q": "T20 ruled out OR T20 injury OR T20 replacement",
+#         "language": "en",
+#         "sortBy": "publishedAt",
+#         "pageSize": 10,
+#         "apiKey": api_key
+#     }
 
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        if response.status_code == 429:
-            return ["⚠️ You've hit the NewsAPI rate limit. Try again in a few minutes."]
-        response.raise_for_status()
-        articles = response.json().get("articles", [])
-    except requests.HTTPError as http_err:
-        return [f"⚠️ Failed to fetch news. Error: {http_err.response.status_code}"]
-    except requests.RequestException as e:
-        return ["⚠️ Could not connect to NewsAPI. Please check your internet or try again later."]
+#     try:
+#         response = requests.get(url, params=params, timeout=10)
+#         if response.status_code == 429:
+#             return ["⚠️ You've hit the NewsAPI rate limit. Try again in a few minutes."]
+#         response.raise_for_status()
+#         articles = response.json().get("articles", [])
+#     except requests.HTTPError as http_err:
+#         return [f"⚠️ Failed to fetch news. Error: {http_err.response.status_code}"]
+#     except requests.RequestException as e:
+#         return ["⚠️ Could not connect to NewsAPI. Please check your internet or try again later."]
 
-    return [(article["title"], article["url"]) for article in articles]
+#     return [(article["title"], article["url"]) for article in articles]
 
 
-# 🚨 News section
-st.subheader("🚨 Ruled Out/Replacement News")
+# # 🚨 News section
+# st.subheader("🚨 Ruled Out/Replacement News")
 
-with st.expander("Expand"):
-    try:
-        api_key = st.secrets["newsapi"]["api_key"]
-        news_items = get_ruled_out_news_from_newsapi(api_key)
-    except Exception as e:
-        news_items = [f"⚠️ Could not load IPL news: {e}"]
+# with st.expander("Expand"):
+#     try:
+#         api_key = st.secrets["newsapi"]["api_key"]
+#         news_items = get_ruled_out_news_from_newsapi(api_key)
+#     except Exception as e:
+#         news_items = [f"⚠️ Could not load IPL news: {e}"]
 
-    if news_items and isinstance(news_items[0], tuple):
-        news_html = ""
-        for title, url in news_items:
-            news_html += f"""
-            <div style="margin-bottom: 20px; border-bottom: 1px dashed #ddd; padding-bottom: 10px;">
-                <strong style="color: #d9534f; font-size: 0.85em;">📰 {title}</strong><br>
-                <a href="{url}" target="_blank" style="font-size: 0.75em; color: #007acc;">Read more</a>
-            </div>
-            """
+#     if news_items and isinstance(news_items[0], tuple):
+#         news_html = ""
+#         for title, url in news_items:
+#             news_html += f"""
+#             <div style="margin-bottom: 20px; border-bottom: 1px dashed #ddd; padding-bottom: 10px;">
+#                 <strong style="color: #d9534f; font-size: 0.85em;">📰 {title}</strong><br>
+#                 <a href="{url}" target="_blank" style="font-size: 0.75em; color: #007acc;">Read more</a>
+#             </div>
+#             """
 
-        wrapper_html = f"""
-        <div style="
-            background-color: #e3f2fd;
-            border-left: 6px solid #f44336;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
-            margin-top: 10px;
-            max-height: 400px;
-            overflow-y: auto;
-        ">
-            {news_html}
-        </div>
-        """
+#         wrapper_html = f"""
+#         <div style="
+#             background-color: #e3f2fd;
+#             border-left: 6px solid #f44336;
+#             padding: 20px;
+#             border-radius: 12px;
+#             box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+#             margin-top: 10px;
+#             max-height: 400px;
+#             overflow-y: auto;
+#         ">
+#             {news_html}
+#         </div>
+#         """
 
-        components.html(wrapper_html, height=450, scrolling=True)
+#         components.html(wrapper_html, height=450, scrolling=True)
 
-    elif news_items and isinstance(news_items[0], str):
-        st.warning(news_items[0])
-    else:
-        st.info("No breaking injury or replacement news right now.")
+#     elif news_items and isinstance(news_items[0], str):
+#         st.warning(news_items[0])
+#     else:
+#         st.info("No breaking injury or replacement news right now.")
 
 
 # def fetch_live_matches():
